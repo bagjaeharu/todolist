@@ -10,10 +10,11 @@
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebaseapp/10.7.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebaseapp/10.7.0/firebase-database-compat.js"></script>
-    
-    <!-- Firebase 초기화 (즉시 실행) -->
     <script src="https://www.gstatic.com/firebaseapp/10.7.0/firebase-auth-compat.js"></script>
+    
+    <!-- Firebase 초기화 (SDK 로드 완료 후 실행) -->
     <script>
+        // Firebase 설정
         const firebaseConfig = {
             apiKey: "AIzaSyDUt7Gl6KPZDBK5YT5J-GU2hSKIEXma5W4",
             authDomain: "todolist-7444b.firebaseapp.com",
@@ -24,18 +25,25 @@
             appId: "1:718944405362:web:5dbd1f2c3e4911b9f67feb"
         };
 
-        firebase.initializeApp(firebaseConfig);
-        
-        // Firebase 익명 인증 설정
-        firebase.auth().signInAnonymously()
-            .then(() => {
-                console.log('✅ Firebase 익명 인증 성공!');
-            })
-            .catch((error) => {
-                console.error('❌ Firebase 인증 실패:', error);
-            });
+        // SDK 로드 완료 후 초기화
+        window.addEventListener('load', function() {
+            if (typeof firebase !== 'undefined') {
+                firebase.initializeApp(firebaseConfig);
+                console.log('✅ Firebase 초기화 성공!');
+                
+                // Firebase 익명 인증 설정
+                firebase.auth().signInAnonymously()
+                    .then(() => {
+                        console.log('✅ Firebase 익명 인증 성공!');
+                    })
+                    .catch((error) => {
+                        console.error('❌ Firebase 인증 실패:', error);
+                    });
+            } else {
+                console.error('❌ Firebase SDK 로드 실패');
+            }
+        });
     </script>
-    <!-- Firebase SDK -->
 
     <style>
         * {
