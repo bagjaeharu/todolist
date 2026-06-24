@@ -6,6 +6,8 @@
     <title>온라인영업팀 To-do List</title>
     <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
+    <!-- Firebase SDK -->
+
     <style>
         * {
             margin: 0;
@@ -240,54 +242,103 @@
             gap: 10px;
         }
 
-        .result-count {
-            padding: 10px 15px;
-            background: #dbeafe;
-            border-left: 4px solid #2563eb;
-            margin-bottom: 15px;
-            font-size: 0.95em;
-            color: #1e40af;
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
         }
 
-        .task-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+        .stat-card {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid #2563eb;
+        }
+
+        .stat-card h4 {
+            color: #6b7280;
+            font-size: 0.85em;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .stat-card .number {
+            font-size: 2em;
+            font-weight: 700;
+            color: #2563eb;
         }
 
         .task-row {
-            background: white;
+            padding: 12px 15px;
             border: 1px solid #e5e7eb;
+            margin-bottom: 12px;
+            background: white;
             border-radius: 6px;
-            padding: 15px;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.2s;
             display: grid;
-            grid-template-columns: 120px 120px 200px 100px;
-            gap: 15px;
+            grid-template-columns: 120px 150px 300px 100px;
+            gap: 10px;
             align-items: center;
         }
 
         .task-row:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            background: #f9fafb;
             border-color: #2563eb;
         }
 
         .task-cell {
-            font-size: 0.9em;
-            color: #374151;
-            white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 0.9em;
         }
 
-        .task-cell strong {
-            color: #1f2937;
+        .task-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 700;
+            text-align: center;
+            display: inline-block;
+        }
+
+        .status-완료 {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-진행중 {
+            background: #dbeafe;
+            color: #0c4a6e;
+        }
+
+        .status-예정 {
+            background: #fef3c7;
+            color: #78350f;
+        }
+
+        .task-details {
+            display: none;
+            background: #f9fafb;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-top: none;
+            margin: -1px 0 12px 0;
+            border-radius: 0 0 6px 6px;
+            grid-column: 1 / -1;
+        }
+
+        .task-details.show {
+            display: block;
         }
 
         .expand-icon {
-            margin-right: 8px;
             display: inline-block;
+            margin-right: 8px;
             transition: transform 0.3s;
         }
 
@@ -295,147 +346,109 @@
             transform: rotate(180deg);
         }
 
-        .task-status {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 0.85em;
-            font-weight: 600;
-        }
-
-        .status-예정 { background: #f3f4f6; color: #1f2937; }
-        .status-진행중 { background: #dbeafe; color: #1e40af; }
-        .status-완료 { background: #dcfce7; color: #166534; }
-        .status-보류 { background: #fed7aa; color: #92400e; }
-
-        .task-details {
-            grid-column: 1 / -1;
-            display: none;
-            padding-top: 15px;
-            border-top: 1px solid #e5e7eb;
-            background: #f9fafb;
-            margin: -15px -15px -15px -15px;
-            padding: 15px;
-        }
-
-        .task-row.expanded .task-details {
-            display: block;
-        }
-
-        .task-summary {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-
-        .task-summary-item {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .task-summary-label {
-            font-size: 0.85em;
-            color: #6b7280;
-            font-weight: 600;
-        }
-
-        .task-summary-value {
-            font-size: 0.95em;
-            color: #1f2937;
-            font-weight: 600;
-        }
-
-        .progress-items {
-            margin-top: 15px;
-        }
-
         .progress-item {
             background: white;
-            padding: 12px;
-            border-radius: 4px;
-            margin-bottom: 10px;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            border: 1px solid #e5e7eb;
             border-left: 3px solid #2563eb;
         }
 
         .progress-item-content {
-            font-size: 0.9em;
             color: #374151;
-            margin-bottom: 10px;
-            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+            line-height: 1.6;
+            margin-bottom: 12px;
+            padding: 10px;
+            background: #f3f4f6;
+            border-radius: 4px;
         }
 
         .progress-item-dates {
-            display: flex;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
             gap: 15px;
-            font-size: 0.85em;
         }
 
         .progress-item-date {
             display: flex;
-            gap: 5px;
-            align-items: center;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .progress-item-date label {
+            font-size: 0.8em;
+            font-weight: 700;
+            color: #6b7280;
         }
 
         .progress-item-date input {
-            padding: 4px 8px;
+            padding: 8px;
             border: 1px solid #d1d5db;
-            border-radius: 3px;
+            border-radius: 4px;
+            font-size: 0.9em;
             font-family: 'Nanum Gothic', sans-serif;
+        }
+
+        .progress-item-date input:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .add-progress-btn {
+            display: block;
+            margin-top: 15px;
+            padding: 10px 16px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 700;
+            font-family: 'Nanum Gothic', sans-serif;
+            font-size: 0.9em;
+        }
+
+        .add-progress-btn:hover {
+            background: #1d4ed8;
         }
 
         .modal {
             display: none;
             position: fixed;
-            z-index: 1000;
-            left: 0;
             top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.4);
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
         }
 
         .modal.active {
             display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
         .modal-content {
-            background-color: white;
+            background: white;
             padding: 30px;
             border-radius: 12px;
             width: 90%;
             max-width: 600px;
-            max-height: 80vh;
+            max-height: 90vh;
             overflow-y: auto;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         }
 
         .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #e5e7eb;
-        }
-
-        .modal-header h3 {
-            color: #1f2937;
-            font-size: 1.3em;
-        }
-
-        .modal-close {
-            background: none;
-            border: none;
             font-size: 1.5em;
-            cursor: pointer;
-            color: #6b7280;
-            padding: 0;
-            width: 30px;
-            height: 30px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 20px;
         }
 
         .form-group {
@@ -444,69 +457,93 @@
 
         .form-group label {
             display: block;
-            margin-bottom: 5px;
-            font-size: 0.9em;
-            font-weight: 700;
+            margin-bottom: 6px;
             color: #1f2937;
+            font-weight: 700;
+            font-size: 0.9em;
         }
 
         .form-group input,
-        .form-group textarea,
-        .form-group select {
+        .form-group select,
+        .form-group textarea {
             width: 100%;
             padding: 10px;
             border: 1px solid #d1d5db;
             border-radius: 4px;
+            font-size: 0.9em;
             font-family: 'Nanum Gothic', sans-serif;
-            font-size: 0.95em;
         }
 
         .form-group textarea {
             resize: vertical;
-            min-height: 100px;
+            min-height: 80px;
         }
 
         .form-group input:focus,
-        .form-group textarea:focus,
-        .form-group select:focus {
+        .form-group select:focus,
+        .form-group textarea:focus {
             outline: none;
             border-color: #2563eb;
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
 
-        .color-palette {
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .modal-actions {
             display: flex;
             gap: 10px;
-            flex-wrap: wrap;
-            margin-bottom: 15px;
+            margin-top: 25px;
+            justify-content: flex-end;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #9ca3af;
+        }
+
+        .empty-state h3 {
+            color: #6b7280;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .color-palette {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 8px;
+            margin-top: 10px;
         }
 
         .color-option {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
             cursor: pointer;
-            border: 3px solid transparent;
-            transition: all 0.3s;
+            border: 2px solid transparent;
+            transition: all 0.2s;
         }
 
         .color-option:hover {
-            transform: scale(1.1);
+            border-color: #1f2937;
         }
 
         .color-option.selected {
-            border-color: #000;
-            box-shadow: 0 0 0 2px white, 0 0 0 4px #000;
+            border-color: #1f2937;
+            box-shadow: 0 0 0 2px white, 0 0 0 4px #1f2937;
         }
 
-        .modal-footer {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .modal-footer button {
-            flex: 1;
+        .result-count {
+            padding: 10px;
+            background: #dbeafe;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            color: #0c4a6e;
+            font-weight: 700;
         }
 
         .btn-sm {
@@ -514,8 +551,56 @@
             font-size: 0.85em;
         }
 
-        @media (max-width: 1200px) {
+        .task-list {
+            display: grid;
+            gap: 0;
+        }
+
+        .task-summary {
+            display: grid;
+            grid-template-columns: 150px 150px;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .task-summary-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .task-summary-label {
+            font-weight: 700;
+            color: #6b7280;
+            font-size: 0.8em;
+        }
+
+        .task-summary-value {
+            color: #1f2937;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
             .task-row {
+                grid-template-columns: 80px 80px 150px 80px;
+            }
+
+            .stats-bar {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            header h1 {
+                font-size: 1.5em;
+            }
+
+            .project-header h2 {
+                font-size: 1.3em;
+            }
+
+            .progress-item-dates {
                 grid-template-columns: 1fr;
             }
         }
@@ -525,176 +610,261 @@
     <div class="container">
         <header>
             <h1>📋 온라인영업팀 To-do List</h1>
-            <p class="header-subtitle">Firebase 기반 프로젝트 관리 시스템</p>
+            <p class="header-subtitle">팀 프로젝트 과제 관리 및 진행 상황 공유</p>
         </header>
 
         <div class="main-content">
             <div class="sidebar">
                 <button class="add-project-btn" onclick="openProjectModal()">+ 프로젝트 추가</button>
-                <h3>프로젝트 목록</h3>
+                <h3>프로젝트</h3>
                 <ul class="project-list" id="projectList"></ul>
+
+                <h3>추가 기능</h3>
+                <button class="add-project-btn" onclick="openExportModal()" style="background: #16a34a;">📊 엑셀 추출</button>
             </div>
 
             <div class="content-area">
+                <div class="project-header">
+                    <h2 id="currentProjectName">프로젝트를 선택하세요</h2>
+                    <div class="project-actions">
+                        <button class="btn btn-primary" onclick="openTaskModal()">+ 과제 추가</button>
+                        <button class="btn btn-secondary" onclick="editCurrentProject()">프로젝트 편집</button>
+                        <button class="btn btn-danger" onclick="deleteCurrentProject()">프로젝트 삭제</button>
+                    </div>
+                </div>
+
                 <div id="projectContent"></div>
             </div>
         </div>
     </div>
 
-    <!-- 프로젝트 모달 -->
-    <div id="projectModal" class="modal">
+    <!-- Project Modal -->
+    <div class="modal" id="projectModal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3>프로젝트</h3>
-                <button class="modal-close" onclick="closeModal('projectModal')">✕</button>
-            </div>
+            <div class="modal-header">프로젝트 추가/편집</div>
             <form id="projectForm">
                 <div class="form-group">
-                    <label>프로젝트명</label>
-                    <input type="text" id="projectName" placeholder="프로젝트 이름 입력" required>
+                    <label for="projectName">프로젝트명 *</label>
+                    <input type="text" id="projectName" required>
                 </div>
                 <div class="form-group">
-                    <label>설명</label>
-                    <textarea id="projectDescription" placeholder="프로젝트 설명 입력"></textarea>
+                    <label for="projectDescription">설명</label>
+                    <textarea id="projectDescription"></textarea>
                 </div>
                 <div class="form-group">
-                    <label>색상</label>
+                    <label>프로젝트 색상</label>
                     <div class="color-palette" id="projectColorPalette">
-                        <div class="color-option selected" data-color="#2563eb" style="background: #2563eb;"></div>
-                        <div class="color-option" data-color="#059669" style="background: #059669;"></div>
-                        <div class="color-option" data-color="#dc2626" style="background: #dc2626;"></div>
-                        <div class="color-option" data-color="#7c3aed" style="background: #7c3aed;"></div>
-                        <div class="color-option" data-color="#db2777" style="background: #db2777;"></div>
+                        <!-- 빨강 계열 -->
+                        <div class="color-option" style="background: #ef4444;" data-color="#ef4444"></div>
+                        <div class="color-option" style="background: #dc2626;" data-color="#dc2626"></div>
+                        <div class="color-option" style="background: #991b1b;" data-color="#991b1b"></div>
+                        <!-- 주황 계열 -->
+                        <div class="color-option" style="background: #f97316;" data-color="#f97316"></div>
+                        <div class="color-option" style="background: #ea580c;" data-color="#ea580c"></div>
+                        <div class="color-option" style="background: #9a3412;" data-color="#9a3412"></div>
+                        <!-- 노랑 계열 -->
+                        <div class="color-option" style="background: #eab308;" data-color="#eab308"></div>
+                        <div class="color-option" style="background: #ca8a04;" data-color="#ca8a04"></div>
+                        <div class="color-option" style="background: #854d0e;" data-color="#854d0e"></div>
+                        
+                        <!-- 초록 계열 -->
+                        <div class="color-option" style="background: #16a34a;" data-color="#16a34a"></div>
+                        <div class="color-option" style="background: #15803d;" data-color="#15803d"></div>
+                        <div class="color-option" style="background: #166534;" data-color="#166534"></div>
+                        <!-- 시안 계열 -->
+                        <div class="color-option" style="background: #06b6d4;" data-color="#06b6d4"></div>
+                        <div class="color-option" style="background: #0891b2;" data-color="#0891b2"></div>
+                        <div class="color-option" style="background: #0e7490;" data-color="#0e7490"></div>
+                        <!-- 파랑 계열 -->
+                        <div class="color-option" style="background: #2563eb;" data-color="#2563eb"></div>
+                        <div class="color-option" style="background: #1d4ed8;" data-color="#1d4ed8"></div>
+                        <div class="color-option" style="background: #1e40af;" data-color="#1e40af"></div>
+                        
+                        <!-- 보라 계열 -->
+                        <div class="color-option" style="background: #a855f7;" data-color="#a855f7"></div>
+                        <div class="color-option" style="background: #9333ea;" data-color="#9333ea"></div>
+                        <div class="color-option" style="background: #7e22ce;" data-color="#7e22ce"></div>
+                        <!-- 핑크 계열 -->
+                        <div class="color-option" style="background: #ec4899;" data-color="#ec4899"></div>
+                        <div class="color-option" style="background: #db2777;" data-color="#db2777"></div>
+                        <div class="color-option" style="background: #be185d;" data-color="#be185d"></div>
+                        <!-- 회색 계열 -->
+                        <div class="color-option" style="background: #6b7280;" data-color="#6b7280"></div>
+                        <div class="color-option" style="background: #4b5563;" data-color="#4b5563"></div>
+                        <div class="color-option" style="background: #374151;" data-color="#374151"></div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="submit" class="btn btn-primary">저장</button>
+                <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('projectModal')">취소</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- 과제 모달 -->
-    <div id="taskModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>과제</h3>
-                <button class="modal-close" onclick="closeModal('taskModal')">✕</button>
-            </div>
-            <form id="taskForm">
-                <div class="form-group">
-                    <label>구분1</label>
-                    <input type="text" id="taskCategory1" placeholder="구분1 입력" required>
-                </div>
-                <div class="form-group">
-                    <label>구분2</label>
-                    <input type="text" id="taskCategory2" placeholder="구분2 입력" required>
-                </div>
-                <div class="form-group">
-                    <label>과제명</label>
-                    <input type="text" id="taskTitle" placeholder="과제명 입력" required>
-                </div>
-                <div class="form-group">
-                    <label>담당자</label>
-                    <input type="text" id="taskAssignee" placeholder="담당자 입력" required>
-                </div>
-                <div class="form-group">
-                    <label>진행상황</label>
-                    <select id="taskStatus" required>
-                        <option value="예정">예정</option>
-                        <option value="진행중">진행중</option>
-                        <option value="완료">완료</option>
-                        <option value="보류">보류</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>진행률 (%)</label>
-                    <input type="range" id="taskProgress" min="0" max="100" value="0">
-                    <div style="text-align: center; color: #2563eb; font-weight: 700; margin-top: 5px;">
-                        <span id="progressValue">0</span>%
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>비고</label>
-                    <textarea id="taskNotes" placeholder="추가 설명 입력"></textarea>
-                </div>
-                <div class="modal-footer">
                     <button type="submit" class="btn btn-primary">저장</button>
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('taskModal')">취소</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- 내보내기 모달 -->
-    <div id="exportModal" class="modal">
+    <!-- Export Modal -->
+    <div class="modal" id="exportModal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3>Excel 내보내기</h3>
-                <button class="modal-close" onclick="closeModal('exportModal')">✕</button>
-            </div>
+            <div class="modal-header">CSV 내보내기</div>
             <form id="exportForm">
                 <div class="form-group">
-                    <label>프로젝트 선택</label>
+                    <label for="exportProject">프로젝트 선택 *</label>
                     <select id="exportProject" required>
-                        <option value="">프로젝트 선택</option>
+                        <option value="">프로젝트를 선택하세요</option>
                     </select>
                 </div>
-                <div class="modal-footer">
-                    <button type="submit" class="btn btn-primary">내보내기</button>
+                <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('exportModal')">취소</button>
+                    <button type="submit" class="btn btn-search">📥 다운로드</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebaseapp/10.7.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebaseapp/10.7.0/firebase-database-compat.js"></script>
+    <!-- Task Modal -->
+    <div class="modal" id="taskModal">
+        <div class="modal-content">
+            <div class="modal-header">과제 추가/편집</div>
+            <form id="taskForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="taskCategory1">구분1 *</label>
+                        <input type="text" id="taskCategory1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="taskCategory2">구분2 *</label>
+                        <input type="text" id="taskCategory2" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="taskTitle">과제명 *</label>
+                    <input type="text" id="taskTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="taskAssignee">담당자 *</label>
+                    <input type="text" id="taskAssignee" required>
+                </div>
+                <div class="form-group">
+                    <label for="taskNotes">비고</label>
+                    <input type="text" id="taskNotes">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="taskStatus">진행상황 *</label>
+                        <select id="taskStatus" required>
+                            <option value="예정">예정</option>
+                            <option value="진행중">진행중</option>
+                            <option value="완료">완료</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="taskProgress">진행률 (%)</label>
+                        <input type="number" id="taskProgress" min="0" max="100" value="0">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('taskModal')">취소</button>
+                    <button type="submit" class="btn btn-primary">저장</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-    <!-- Firebase 설정 (HTML 내부) -->
     <script>
-        // Firebase 설정 (수정 완료)
+        // ==========================================
+        // 📌 Firebase 설정 (STEP 1: 아래 3가지만 수정하세요!)
+        // ==========================================
         const firebaseConfig = {
-          apiKey: "AIzaSyDUt7Gl6KPZDBK5YT5J-GU2hSKIEXma5W4",
-          authDomain: "todolist-7444b.firebaseapp.com",
-          databaseURL: "https://todolist-7444b.firebaseio.com",
-          projectId: "todolist-7444b",
-          storageBucket: "todolist-7444b.firebasestorage.app",
-          messagingSenderId: "718944405362",
-          appId: "1:718944405362:web:5dbd1f2c3e4911b9f67feb"
+            apiKey: "YOUR_API_KEY",  // ← Firebase 콘솔에서 복사한 값으로 바꾸기
+            authDomain: "todolist.firebaseapp.com",  // ✅ 이미 맞음
+            projectId: "todolist",  // ✅ 이미 맞음
+            storageBucket: "todolist.appspot.com",  // ✅ 이미 맞음
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",  // ← Firebase 콘솔에서 복사한 값으로 바꾸기
+            appId: "YOUR_APP_ID"  // ← Firebase 콘솔에서 복사한 값으로 바꾸기
         };
 
         // Firebase 초기화
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
+        
+        // 현재 사용자 ID (고유한 값)
+        let currentUserId = localStorage.getItem('userId') || 'user_' + Date.now();
+        localStorage.setItem('userId', currentUserId);
+        console.log('사용자 ID:', currentUserId);
 
-        console.log('✅ Firebase 초기화 완료!');
-    </script>
-
-    <script>
-        // 전역 변수들
+        // ==========================================
+        
         let projects = [];
         let currentProjectId = null;
-        let editingProjectId = null;
         let editingTaskId = null;
-        const currentUserId = 'user123'; // 실제로는 로그인한 사용자 ID 사용
+        let editingProjectId = null;
 
+        // 초기화
         function init() {
+            console.log('초기화 시작...');
             loadFromFirebase();
+            console.log('저장된 프로젝트:', projects.length);
+            
+            if (projects.length === 0) {
+                console.log('샘플 데이터 추가...');
+                addSampleData();
+            }
+            
+            console.log('프로젝트 목록 렌더링...');
+            renderProjectList();
+            setupColorPalettes();
+            
+            if (projects.length > 0) {
+                currentProjectId = projects[0].id;
+                console.log('선택된 프로젝트:', currentProjectId);
+                renderContent();
+            }
+        }
+
+        function addSampleData() {
+            const now = Date.now();
+            projects = [
+                {
+                    id: now + 1,
+                    name: '(1) 물류',
+                    color: '#2563eb',
+                    tasks: [
+                        { id: now + 1001, category1: '계약', category2: '택배/물류', title: '계약기간 일괄 연장', assignee: '영업팀', progressItems: [{ id: 1, content: '택배/물류/부자재 계약기간 일괄 연장', startDate: '', endDate: '' }], notes: '', status: '완료', progress: 100 },
+                        { id: now + 1002, category1: '계약', category2: '택배/물류', title: '택배계약 견적서 업데이트', assignee: '박재용', progressItems: [{ id: 1, content: '택배계약 + 물류견적서 업데이트', startDate: '', endDate: '' }], notes: '', status: '진행중', progress: 70 },
+                        { id: now + 1003, category1: '업무환경', category2: 'CJ대한통운', title: '업무공간 실사', assignee: '박재용', progressItems: [{ id: 1, content: '업무공간 실사 진행', startDate: '2026-06-16', endDate: '2026-06-16' }], notes: '', status: '완료', progress: 100 },
+                        { id: now + 1004, category1: '업무환경', category2: 'PS&M', title: '군포 망구축 공사', assignee: '박재용', progressItems: [{ id: 1, content: '군포 망구축 공사 품의', startDate: '', endDate: '' }], notes: '', status: '진행중', progress: 60 }
+                    ]
+                },
+                {
+                    id: now + 2,
+                    name: '(2) 개통',
+                    color: '#0891b2',
+                    tasks: [
+                        { id: now + 2001, category1: '계약', category2: '연장', title: '현계약 종료일 이전 연장', assignee: '영업팀', progressItems: [{ id: 1, content: '연장 계약 진행', startDate: '', endDate: '' }], notes: '', status: '예정', progress: 0 },
+                        { id: now + 2002, category1: '업무환경', category2: '공간확보', title: '1층 공간 부래당 확인', assignee: '박재용', progressItems: [{ id: 1, content: '공간 확인 및 협의', startDate: '', endDate: '' }], notes: '', status: '진행중', progress: 70 }
+                    ]
+                },
+                {
+                    id: now + 3,
+                    name: '(3) 상담/라이브챗',
+                    color: '#0369a1',
+                    tasks: [
+                        { id: now + 3001, category1: '계약', category2: '연장', title: '1년 연장 계약', assignee: '영업팀', progressItems: [{ id: 1, content: '연장 계약 진행', startDate: '', endDate: '' }], notes: '', status: '예정', progress: 0 }
+                    ]
+                }
+            ];
+            saveToStorage();
         }
 
         function renderProjectList() {
-            const html = projects.map(p => `
-                <li class="project-item ${p.id === currentProjectId ? 'active' : ''}" 
+            const list = document.getElementById('projectList');
+            list.innerHTML = projects.map(p => `
+                <li class="project-item ${currentProjectId === p.id ? 'active' : ''}" 
                     onclick="selectProject(${p.id})"
                     style="border-left-color: ${p.color}">
                     ${p.name}
                 </li>
             `).join('');
-            
-            document.getElementById('projectList').innerHTML = html;
         }
 
         function selectProject(projectId) {
@@ -704,29 +874,26 @@
         }
 
         function renderContent() {
-            if (!currentProjectId) {
-                document.getElementById('projectContent').innerHTML = '<p>프로젝트를 선택해주세요</p>';
-                return;
-            }
-
             const project = projects.find(p => p.id === currentProjectId);
+            if (!project) return;
+
+            document.getElementById('currentProjectName').textContent = project.name;
+            
             const tasks = project.tasks || [];
+            const completed = tasks.filter(t => t.status === '완료').length;
+            const inProgress = tasks.filter(t => t.status === '진행중').length;
+            const avgProgress = tasks.length > 0 ? Math.round(tasks.reduce((sum, t) => sum + (t.progress || 0), 0) / tasks.length) : 0;
 
             let html = `
-                <div class="project-header">
-                    <h2 style="color: ${project.color}">${project.name}</h2>
-                    <div class="project-actions">
-                        <button class="btn btn-primary" onclick="openTaskModal()">+ 과제 추가</button>
-                        <button class="btn btn-secondary" onclick="openExportModal()">📊 내보내기</button>
-                        <button class="btn btn-secondary" onclick="editCurrentProject()">✏️ 편집</button>
-                        <button class="btn btn-danger" onclick="deleteCurrentProject()">🗑️ 삭제</button>
-                    </div>
+                <div class="stats-bar">
+                    <div class="stat-card"><h4>전체 과제</h4><div class="number">${tasks.length}</div></div>
+                    <div class="stat-card"><h4>완료</h4><div class="number">${completed}</div></div>
+                    <div class="stat-card"><h4>진행중</h4><div class="number">${inProgress}</div></div>
+                    <div class="stat-card"><h4>평균 진행률</h4><div class="number">${avgProgress}%</div></div>
                 </div>
 
-                ${project.description ? `<p style="color: #6b7280; margin-bottom: 20px;">${project.description}</p>` : ''}
-
                 <div class="filters-section">
-                    <div class="filters-title">🔎 검색 및 필터</div>
+                    <div class="filters-title">🔍 과제 필터링</div>
                     <div class="filters">
                         <div class="filter-group">
                             <label>담당자</label>
@@ -791,6 +958,7 @@
 
             let html = '';
             filtered.forEach(task => {
+                const progressItems = task.progressItems || [];
                 html += `
                     <div class="task-row" onclick="toggleExpand(this)">
                         <div class="task-cell"><span class="expand-icon">▼</span>${task.category1}</div>
@@ -807,24 +975,58 @@
                                     <div class="task-summary-label">진행률</div>
                                     <div class="task-summary-value">${task.progress}%</div>
                                 </div>
-                                <div class="task-summary-item">
-                                    <div class="task-summary-label">비고</div>
-                                    <div class="task-summary-value">${task.notes || '-'}</div>
-                                </div>
                             </div>
-                            <div style="display: flex; gap: 10px; margin-top: 15px;">
-                                <button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); editTask(${task.id})">수정</button>
-                                <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); deleteTask(${task.id})">삭제</button>
+
+                            <h4 style="font-weight: 700; margin-bottom: 12px; color: #1f2937;">📝 진행 내용</h4>
+                            ${progressItems.map((item, idx) => `
+                                <div class="progress-item">
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                                        <div>#${idx + 1}</div>
+                                        <button type="button" class="btn btn-sm btn-danger" onclick="event.stopPropagation(); deleteProgressItem(${task.id}, ${item.id})">삭제</button>
+                                    </div>
+                                    <div class="progress-item-content">${item.content}</div>
+                                    <div class="progress-item-dates">
+                                        <div class="progress-item-date">
+                                            <label>시작일</label>
+                                            <input type="date" value="${item.startDate}" onclick="event.stopPropagation()" onchange="updateProgressDate(${task.id}, ${item.id}, 'startDate', this.value)">
+                                        </div>
+                                        <div class="progress-item-date">
+                                            <label>종료일</label>
+                                            <input type="date" value="${item.endDate}" onclick="event.stopPropagation()" onchange="updateProgressDate(${task.id}, ${item.id}, 'endDate', this.value)">
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                            <button type="button" class="add-progress-btn" onclick="event.stopPropagation(); addProgressItem(${task.id})">+ 진행 내용 추가</button>
+
+                            ${task.notes ? `<div style="margin-top: 20px;"><h4 style="font-weight: 700; color: #1f2937;">📌 비고</h4><div style="padding: 10px; background: #f3f4f6; border-radius: 4px;">${task.notes}</div></div>` : ''}
+
+                            <div style="border-top: 1px solid #e5e7eb; margin-top: 15px; padding-top: 15px;">
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); editTask(${task.id})">편집</button>
+                                <button type="button" class="btn btn-sm btn-danger" onclick="event.stopPropagation(); deleteTask(${task.id})">삭제</button>
                             </div>
                         </div>
                     </div>
                 `;
             });
 
-            document.getElementById('taskList').innerHTML = html || '<p style="color: #9ca3af; padding: 20px;">과제가 없습니다.</p>';
+            if (filtered.length === 0) {
+                html = '<div class="empty-state"><h3>검색 결과가 없습니다</h3></div>';
+            }
+
+            document.getElementById('taskList').innerHTML = html;
         }
 
         function toggleExpand(element) {
+            const details = element.querySelector('.task-details');
+            const allDetails = document.querySelectorAll('.task-details');
+            allDetails.forEach(d => {
+                if (d !== details) {
+                    d.classList.remove('show');
+                    d.parentElement.classList.remove('expanded');
+                }
+            });
+            details.classList.toggle('show');
             element.classList.toggle('expanded');
         }
 
@@ -836,9 +1038,43 @@
             applyFilters();
         }
 
+        function addProgressItem(taskId) {
+            const project = projects.find(p => p.id === currentProjectId);
+            const task = project.tasks.find(t => t.id === taskId);
+            const newId = Math.max(...task.progressItems.map(p => p.id), 0) + 1;
+            task.progressItems.push({ id: newId, content: '', startDate: '', endDate: '' });
+            saveToStorage();
+            applyFilters();
+        }
+
+        function deleteProgressItem(taskId, itemId) {
+            const project = projects.find(p => p.id === currentProjectId);
+            const task = project.tasks.find(t => t.id === taskId);
+            task.progressItems = task.progressItems.filter(p => p.id !== itemId);
+            saveToStorage();
+            applyFilters();
+        }
+
+        function updateProgressDate(taskId, itemId, field, value) {
+            const project = projects.find(p => p.id === currentProjectId);
+            const task = project.tasks.find(t => t.id === taskId);
+            const item = task.progressItems.find(p => p.id === itemId);
+            item[field] = value;
+            saveToStorage();
+        }
+
+        function openProjectModal() {
+            editingProjectId = null;
+            document.getElementById('projectForm').reset();
+            document.querySelectorAll('#projectColorPalette .color-option').forEach((o, i) => {
+                o.classList.toggle('selected', i === 0);
+            });
+            document.getElementById('projectModal').classList.add('active');
+        }
+
         function openExportModal() {
             const select = document.getElementById('exportProject');
-            select.innerHTML = '<option value="">프로젝트 선택</option>';
+            select.innerHTML = '<option value="">프로젝트를 선택하세요</option>';
             projects.forEach(p => {
                 const option = document.createElement('option');
                 option.value = p.id;
@@ -856,7 +1092,6 @@
             editingTaskId = null;
             document.getElementById('taskForm').reset();
             document.getElementById('taskProgress').value = 0;
-            document.getElementById('progressValue').textContent = '0';
             document.getElementById('taskStatus').value = '예정';
             document.getElementById('taskModal').classList.add('active');
         }
@@ -873,7 +1108,6 @@
             document.getElementById('taskNotes').value = task.notes || '';
             document.getElementById('taskStatus').value = task.status;
             document.getElementById('taskProgress').value = task.progress || 0;
-            document.getElementById('progressValue').textContent = task.progress || 0;
             
             document.getElementById('taskModal').classList.add('active');
         }
@@ -882,7 +1116,7 @@
             if (!confirm('정말 삭제하시겠습니까?')) return;
             const project = projects.find(p => p.id === currentProjectId);
             project.tasks = project.tasks.filter(t => t.id !== taskId);
-            saveToFirebase();
+            saveToStorage();
             applyFilters();
         }
 
@@ -902,7 +1136,7 @@
             if (!currentProjectId || !confirm('정말 삭제하시겠습니까?')) return;
             projects = projects.filter(p => p.id !== currentProjectId);
             currentProjectId = projects.length > 0 ? projects[0].id : null;
-            saveToFirebase();
+            saveToStorage();
             renderProjectList();
             if (currentProjectId) renderContent();
         }
@@ -941,7 +1175,7 @@
                 });
                 currentProjectId = projects[projects.length - 1].id;
             }
-            saveToFirebase();
+            saveToStorage();
             renderProjectList();
             renderContent();
             closeModal('projectModal');
@@ -967,10 +1201,11 @@
             } else {
                 project.tasks.push({
                     id: Date.now(),
-                    ...taskData
+                    ...taskData,
+                    progressItems: [{ id: 1, content: '', startDate: '', endDate: '' }]
                 });
             }
-            saveToFirebase();
+            saveToStorage();
             renderContent();
             closeModal('taskModal');
         });
@@ -985,29 +1220,39 @@
                 return;
             }
 
+            // 엑셀 데이터 준비
             const excelData = [];
-            const headers = ['구분1', '구분2', '과제명', '담당자', '진행상황', '진행률', '비고'];
+            const headers = ['구분1', '구분2', '과제명', '담당자', '진행내용', '시작일', '종료일', '비고', '진행상황', '진행률'];
             excelData.push(headers);
             
-            (project.tasks || []).forEach(task => {
-                excelData.push([
-                    task.category1,
-                    task.category2,
-                    task.title,
-                    task.assignee,
-                    task.status,
-                    task.progress,
-                    task.notes || ''
-                ]);
+            project.tasks.forEach(task => {
+                (task.progressItems || []).forEach(item => {
+                    excelData.push([
+                        task.category1,
+                        task.category2,
+                        task.title,
+                        task.assignee,
+                        item.content || '',
+                        item.startDate || '',
+                        item.endDate || '',
+                        task.notes || '',
+                        task.status,
+                        task.progress
+                    ]);
+                });
             });
 
+            // SheetJS를 사용하여 엑셀 파일 생성
             const ws = XLSX.utils.aoa_to_sheet(excelData);
-            const colWidths = [12, 12, 20, 12, 12, 8, 15];
+            
+            // 열 너비 설정
+            const colWidths = [12, 12, 20, 12, 20, 12, 12, 15, 12, 8];
             ws['!cols'] = colWidths.map(w => ({ wch: w }));
             
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, '과제목록');
             
+            // 파일명 설정 (날짜 포함)
             const fileName = `${project.name}_${new Date().toISOString().slice(0, 10)}.xlsx`;
             XLSX.writeFile(wb, fileName);
             
@@ -1018,10 +1263,10 @@
             const userRef = database.ref(`users/${currentUserId}/projects`);
             userRef.set(projects)
                 .then(() => {
-                    console.log('✅ Firebase에 저장 완료');
+                    console.log('Firebase에 저장 완료');
                 })
                 .catch((error) => {
-                    console.error('❌ Firebase 저장 실패:', error);
+                    console.error('Firebase 저장 실패:', error);
                     alert('저장에 실패했습니다. 인터넷 연결을 확인하세요.');
                 });
         }
@@ -1029,17 +1274,15 @@
         function loadFromFirebase() {
             const userRef = database.ref(`users/${currentUserId}/projects`);
             
+            // 초기 로드
             userRef.once('value')
                 .then((snapshot) => {
                     if (snapshot.exists()) {
                         projects = snapshot.val();
-                        console.log('✅ Firebase에서 로드 완료');
+                        console.log('Firebase에서 로드 완료:', projects.length);
                     } else {
                         console.log('저장된 프로젝트가 없습니다');
                         projects = [];
-                    }
-                    if (projects.length > 0) {
-                        currentProjectId = projects[0].id;
                     }
                     renderProjectList();
                     if (currentProjectId) {
@@ -1047,16 +1290,18 @@
                     }
                 })
                 .catch((error) => {
-                    console.error('❌ Firebase 로드 실패:', error);
-                    alert('데이터 로드에 실패했습니다.');
+                    console.error('Firebase 로드 실패:', error);
+                    alert('데이터 로드에 실패했습니다. 잠시 후 다시 시도하세요.');
                 });
-
+            
+            // 실시간 동기화 (다른 기기에서 변경되면 자동 반영)
             userRef.on('value', (snapshot) => {
                 if (snapshot.exists()) {
                     const remoteProjects = snapshot.val();
+                    // 현재 프로젝트가 있다면 유지하고 목록만 업데이트
                     if (JSON.stringify(projects) !== JSON.stringify(remoteProjects)) {
                         projects = remoteProjects;
-                        console.log('✅ 실시간 동기화됨');
+                        console.log('실시간 동기화됨');
                         renderProjectList();
                         renderContent();
                     }
@@ -1064,12 +1309,33 @@
             });
         }
 
-        document.getElementById('taskProgress').addEventListener('input', function() {
-            document.getElementById('progressValue').textContent = this.value;
-        });
+        // 모든 저장 함수 변경
+        // saveToStorage() 호출되는 곳을 saveToFirebase()로 변경
+        const originalSaveToStorage = saveToFirebase;
+        window.saveToStorage = saveToFirebase;
 
-        setupColorPalettes();
+        // 페이지 로드 시 초기화
         window.addEventListener('load', init);
+    </script>
+
+    <!-- Firebase SDK 로드 -->
+    <script src="https://www.gstatic.com/firebaseapp/10.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebaseapp/10.7.0/firebase-database-compat.js"></script>
+
+    <!-- Firebase 초기화 설정 -->
+    <script>
+        const firebaseConfig = {
+          apiKey: "AIzaSyDUt7Gl6KPZDBK5YT5J-GU2hSKIEXma5W4",
+          authDomain: "todolist-7444b.firebaseapp.com",
+          databaseURL: "https://todolist-7444b.firebaseio.com",
+          projectId: "todolist-7444b",
+          storageBucket: "todolist-7444b.firebasestorage.app",
+          messagingSenderId: "718944405362",
+          appId: "1:718944405362:web:5dbd1f2c3e4911b9f67feb"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        console.log('✅ Firebase 초기화 완료!');
     </script>
 </body>
 </html>
