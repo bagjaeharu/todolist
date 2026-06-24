@@ -25,24 +25,24 @@
             appId: "1:718944405362:web:5dbd1f2c3e4911b9f67feb"
         };
 
-        // SDK 로드 완료 후 초기화
-        window.addEventListener('load', function() {
-            if (typeof firebase !== 'undefined') {
+        // Firebase 초기화 (문서 로드와 관계없이 실행)
+        if (typeof firebase !== 'undefined') {
+            if (!firebase.apps.length) {
                 firebase.initializeApp(firebaseConfig);
-                console.log('✅ Firebase 초기화 성공!');
-                
-                // Firebase 익명 인증 설정
-                firebase.auth().signInAnonymously()
-                    .then(() => {
-                        console.log('✅ Firebase 익명 인증 성공!');
-                    })
-                    .catch((error) => {
-                        console.error('❌ Firebase 인증 실패:', error);
-                    });
-            } else {
-                console.error('❌ Firebase SDK 로드 실패');
             }
-        });
+            console.log('✅ Firebase 초기화 성공!');
+            
+            // Firebase 익명 인증 설정
+            firebase.auth().signInAnonymously()
+                .then(() => {
+                    console.log('✅ Firebase 익명 인증 성공!');
+                })
+                .catch((error) => {
+                    console.error('❌ Firebase 인증 실패:', error);
+                });
+        } else {
+            console.error('❌ Firebase SDK 로드 실패');
+        }
     </script>
 
     <style>
@@ -816,7 +816,11 @@
         let currentProjectId = null;
         let editingTaskId = null;
         let editingProjectId = null;
-        const database = firebase.database();
+        
+        // Database를 필요할 때 가져오는 함수
+        function getDatabase() {
+            return firebase.database();
+        }
 
         // 초기화
         function init() {
@@ -1300,26 +1304,34 @@
         });
 
         function saveToFirebase() {
-            const userRef = database.ref(`users/${currentUserId}/projects`);
+            if (!currentUserId) {
+                console.error('사용자 ID가 설정되지 않았습니다');
+                return;
+            }
+            const userRef = getDatabase().ref(`users/${currentUserId}/projects`);
             userRef.set(projects)
                 .then(() => {
-                    console.log('Firebase에 저장 완료');
+                    console.log('✅ Firebase에 저장 완료');
                 })
                 .catch((error) => {
-                    console.error('Firebase 저장 실패:', error);
+                    console.error('❌ Firebase 저장 실패:', error);
                     alert('저장에 실패했습니다. 인터넷 연결을 확인하세요.');
                 });
         }
 
         function loadFromFirebase() {
-            const userRef = database.ref(`users/${currentUserId}/projects`);
+            if (!currentUserId) {
+                console.error('사용자 ID가 설정되지 않았습니다');
+                return;
+            }
+            const userRef = getDatabase().ref(`users/${currentUserId}/projects`);
             
             // 초기 로드
             userRef.once('value')
                 .then((snapshot) => {
                     if (snapshot.exists()) {
                         projects = snapshot.val();
-                        console.log('Firebase에서 로드 완료:', projects.length);
+                        console.log('✅ Firebase에서 로드 완료:', projects.length);
                     } else {
                         console.log('저장된 프로젝트가 없습니다');
                         projects = [];
@@ -1330,7 +1342,7 @@
                     }
                 })
                 .catch((error) => {
-                    console.error('Firebase 로드 실패:', error);
+                    console.error('❌ Firebase 로드 실패:', error);
                     alert('데이터 로드에 실패했습니다. 잠시 후 다시 시도하세요.');
                 });
             
@@ -1341,7 +1353,7 @@
                     // 현재 프로젝트가 있다면 유지하고 목록만 업데이트
                     if (JSON.stringify(projects) !== JSON.stringify(remoteProjects)) {
                         projects = remoteProjects;
-                        console.log('실시간 동기화됨');
+                        console.log('🔄 실시간 동기화됨');
                         renderProjectList();
                         renderContent();
                     }
