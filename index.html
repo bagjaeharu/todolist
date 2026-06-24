@@ -12,6 +12,7 @@
     <script src="https://www.gstatic.com/firebaseapp/10.7.0/firebase-database-compat.js"></script>
     
     <!-- Firebase 초기화 (즉시 실행) -->
+    <script src="https://www.gstatic.com/firebaseapp/10.7.0/firebase-auth-compat.js"></script>
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyDUt7Gl6KPZDBK5YT5J-GU2hSKIEXma5W4",
@@ -24,7 +25,15 @@
         };
 
         firebase.initializeApp(firebaseConfig);
-        console.log('✅ Firebase 초기화 성공!');
+        
+        // Firebase 익명 인증 설정
+        firebase.auth().signInAnonymously()
+            .then(() => {
+                console.log('✅ Firebase 익명 인증 성공!');
+            })
+            .catch((error) => {
+                console.error('❌ Firebase 인증 실패:', error);
+            });
     </script>
     <!-- Firebase SDK -->
 
@@ -37,7 +46,7 @@
 
         body {
             font-family: 'Nanum Gothic', sans-serif;
-            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+            background: #ffffff;
             min-height: 100vh;
             padding: 20px;
         }
@@ -47,15 +56,16 @@
             margin: 0 auto;
             background: white;
             border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
             overflow: hidden;
         }
 
         header {
-            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-            color: white;
+            background: #f8fafc;
+            color: #1f2937;
             padding: 30px;
             text-align: center;
+            border-bottom: 1px solid #e2e8f0;
         }
 
         header h1 {
@@ -76,8 +86,8 @@
         }
 
         .sidebar {
-            background: #f3f4f6;
-            border-right: 1px solid #e5e7eb;
+            background: #f8fafc;
+            border-right: 1px solid #e2e8f0;
             padding: 20px;
             overflow-y: auto;
         }
@@ -100,7 +110,7 @@
             padding: 12px;
             margin-bottom: 8px;
             background: white;
-            border-left: 4px solid #d1d5db;
+            border-left: 4px solid #cbd5e1;
             cursor: pointer;
             border-radius: 4px;
             transition: all 0.3s;
@@ -108,21 +118,21 @@
         }
 
         .project-item:hover {
-            background: #f0f4f8;
-            border-left-color: #2563eb;
+            background: #f1f5f9;
+            border-left-color: #60a5fa;
         }
 
         .project-item.active {
-            background: #2563eb;
-            color: white;
-            border-left-color: #2563eb;
+            background: #dbeafe;
+            color: #1e40af;
+            border-left-color: #3b82f6;
             font-weight: 700;
         }
 
         .add-project-btn {
             width: 100%;
             padding: 10px;
-            background: #2563eb;
+            background: #3b82f6;
             color: white;
             border: none;
             border-radius: 4px;
@@ -135,7 +145,7 @@
         }
 
         .add-project-btn:hover {
-            background: #1d4ed8;
+            background: #2563eb;
         }
 
         .content-area {
@@ -149,7 +159,7 @@
             align-items: center;
             margin-bottom: 25px;
             padding-bottom: 15px;
-            border-bottom: 2px solid #e5e7eb;
+            border-bottom: 2px solid #e2e8f0;
         }
 
         .project-header h2 {
@@ -175,12 +185,12 @@
         }
 
         .btn-primary {
-            background: #2563eb;
+            background: #3b82f6;
             color: white;
         }
 
         .btn-primary:hover {
-            background: #1d4ed8;
+            background: #2563eb;
         }
 
         .btn-danger {
@@ -211,7 +221,7 @@
         }
 
         .filters-section {
-            background: #f3f4f6;
+            background: #f8fafc;
             padding: 20px;
             border-radius: 8px;
             margin-bottom: 20px;
@@ -245,7 +255,7 @@
 
         .filter-group select {
             padding: 10px;
-            border: 1px solid #d1d5db;
+            border: 1px solid #cbd5e1;
             border-radius: 4px;
             font-size: 0.9em;
             font-family: 'Nanum Gothic', sans-serif;
@@ -253,8 +263,8 @@
 
         .filter-group select:focus {
             outline: none;
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
 
         .filter-buttons {
@@ -270,15 +280,15 @@
         }
 
         .stat-card {
-            background: #f3f4f6;
+            background: #f8fafc;
             padding: 15px;
             border-radius: 8px;
             text-align: center;
-            border-left: 4px solid #2563eb;
+            border-left: 4px solid #3b82f6;
         }
 
         .stat-card h4 {
-            color: #6b7280;
+            color: #64748b;
             font-size: 0.85em;
             text-transform: uppercase;
             margin-bottom: 8px;
@@ -288,12 +298,12 @@
         .stat-card .number {
             font-size: 2em;
             font-weight: 700;
-            color: #2563eb;
+            color: #3b82f6;
         }
 
         .task-row {
             padding: 12px 15px;
-            border: 1px solid #e5e7eb;
+            border: 1px solid #e2e8f0;
             margin-bottom: 12px;
             background: white;
             border-radius: 6px;
@@ -306,8 +316,8 @@
         }
 
         .task-row:hover {
-            background: #f9fafb;
-            border-color: #2563eb;
+            background: #f8fafc;
+            border-color: #3b82f6;
         }
 
         .task-cell {
@@ -343,9 +353,9 @@
 
         .task-details {
             display: none;
-            background: #f9fafb;
+            background: #f8fafc;
             padding: 20px;
-            border: 1px solid #e5e7eb;
+            border: 1px solid #e2e8f0;
             border-top: none;
             margin: -1px 0 12px 0;
             border-radius: 0 0 6px 6px;
@@ -371,8 +381,8 @@
             padding: 15px;
             border-radius: 6px;
             margin-bottom: 15px;
-            border: 1px solid #e5e7eb;
-            border-left: 3px solid #2563eb;
+            border: 1px solid #e2e8f0;
+            border-left: 3px solid #3b82f6;
         }
 
         .progress-item-content {
@@ -382,7 +392,7 @@
             line-height: 1.6;
             margin-bottom: 12px;
             padding: 10px;
-            background: #f3f4f6;
+            background: #f8fafc;
             border-radius: 4px;
         }
 
@@ -406,7 +416,7 @@
 
         .progress-item-date input {
             padding: 8px;
-            border: 1px solid #d1d5db;
+            border: 1px solid #cbd5e1;
             border-radius: 4px;
             font-size: 0.9em;
             font-family: 'Nanum Gothic', sans-serif;
@@ -414,15 +424,15 @@
 
         .progress-item-date input:focus {
             outline: none;
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
 
         .add-progress-btn {
             display: block;
             margin-top: 15px;
             padding: 10px 16px;
-            background: #2563eb;
+            background: #3b82f6;
             color: white;
             border: none;
             border-radius: 4px;
@@ -433,7 +443,7 @@
         }
 
         .add-progress-btn:hover {
-            background: #1d4ed8;
+            background: #2563eb;
         }
 
         .modal {
@@ -461,7 +471,7 @@
             max-width: 600px;
             max-height: 90vh;
             overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         }
 
         .modal-header {
@@ -488,7 +498,7 @@
         .form-group textarea {
             width: 100%;
             padding: 10px;
-            border: 1px solid #d1d5db;
+            border: 1px solid #cbd5e1;
             border-radius: 4px;
             font-size: 0.9em;
             font-family: 'Nanum Gothic', sans-serif;
@@ -503,8 +513,8 @@
         .form-group select:focus,
         .form-group textarea:focus {
             outline: none;
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
 
         .form-row {
@@ -794,32 +804,41 @@
         // ==========================================
         
         let projects = [];
-        let currentUserId = localStorage.getItem('userId') || 'user_' + Date.now();
-        localStorage.setItem('userId', currentUserId);
+        let currentUserId = null; // Firebase 인증 후 설정됨
         let currentProjectId = null;
         let editingTaskId = null;
         let editingProjectId = null;
+        const database = firebase.database();
 
         // 초기화
         function init() {
             console.log('초기화 시작...');
-            loadFromFirebase();
-            console.log('저장된 프로젝트:', projects.length);
             
-            if (projects.length === 0) {
-                console.log('샘플 데이터 추가...');
-                addSampleData();
-            }
-            
-            console.log('프로젝트 목록 렌더링...');
-            renderProjectList();
-            setupColorPalettes();
-            
-            if (projects.length > 0) {
-                currentProjectId = projects[0].id;
-                console.log('선택된 프로젝트:', currentProjectId);
-                renderContent();
-            }
+            // Firebase 인증된 사용자 ID 가져오기
+            firebase.auth().onAuthStateChanged((user) => {
+                if (user) {
+                    currentUserId = user.uid;
+                    console.log('✅ 현재 사용자 ID:', currentUserId);
+                    loadFromFirebase();
+                    
+                    if (projects.length === 0) {
+                        console.log('샘플 데이터 추가...');
+                        addSampleData();
+                    }
+                    
+                    console.log('프로젝트 목록 렌더링...');
+                    renderProjectList();
+                    setupColorPalettes();
+                    
+                    if (projects.length > 0) {
+                        currentProjectId = projects[0].id;
+                        console.log('선택된 프로젝트:', currentProjectId);
+                        renderContent();
+                    }
+                } else {
+                    console.error('❌ 사용자 인증 실패');
+                }
+            });
         }
 
         function addSampleData() {
@@ -854,7 +873,7 @@
                     ]
                 }
             ];
-            saveToStorage();
+            saveToFirebase();
         }
 
         function renderProjectList() {
@@ -981,30 +1000,33 @@
                             <h4 style="font-weight: 700; margin-bottom: 12px; color: #1f2937;">📝 진행 내용</h4>
                             ${progressItems.map((item, idx) => `
                                 <div class="progress-item">
-                                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                                        <div>#${idx + 1}</div>
-                                        <button type="button" class="btn btn-sm btn-danger" onclick="event.stopPropagation(); deleteProgressItem(${task.id}, ${item.id})">삭제</button>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                        <div style="font-weight: 700; color: #3b82f6;">항목 #${idx + 1}</div>
+                                        <button type="button" class="btn btn-sm btn-danger" onclick="event.stopPropagation(); deleteProgressItem(${task.id}, ${item.id})">🗑️ 삭제</button>
                                     </div>
-                                    <div class="progress-item-content">${item.content}</div>
+                                    <div style="margin-bottom: 12px;">
+                                        <label style="font-size: 0.85em; font-weight: 700; color: #64748b; display: block; margin-bottom: 4px;">진행 내용</label>
+                                        <textarea style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 4px; font-family: 'Nanum Gothic', sans-serif; min-height: 60px;" onclick="event.stopPropagation()" onchange="updateProgressContent(${task.id}, ${item.id}, this.value)" placeholder="진행된 내용을 입력하세요...">${item.content}</textarea>
+                                    </div>
                                     <div class="progress-item-dates">
                                         <div class="progress-item-date">
                                             <label>시작일</label>
-                                            <input type="date" value="${item.startDate}" onclick="event.stopPropagation()" onchange="updateProgressDate(${task.id}, ${item.id}, 'startDate', this.value)">
+                                            <input type="date" value="${item.startDate}" onclick="event.stopPropagation()" onchange="updateProgressDate(${task.id}, ${item.id}, 'startDate', this.value)" style="border: 1px solid #cbd5e1;">
                                         </div>
                                         <div class="progress-item-date">
                                             <label>종료일</label>
-                                            <input type="date" value="${item.endDate}" onclick="event.stopPropagation()" onchange="updateProgressDate(${task.id}, ${item.id}, 'endDate', this.value)">
+                                            <input type="date" value="${item.endDate}" onclick="event.stopPropagation()" onchange="updateProgressDate(${task.id}, ${item.id}, 'endDate', this.value)" style="border: 1px solid #cbd5e1;">
                                         </div>
                                     </div>
                                 </div>
                             `).join('')}
-                            <button type="button" class="add-progress-btn" onclick="event.stopPropagation(); addProgressItem(${task.id})">+ 진행 내용 추가</button>
+                            <button type="button" class="add-progress-btn" onclick="event.stopPropagation(); addProgressItem(${task.id})">➕ 진행 내용 추가</button>
 
-                            ${task.notes ? `<div style="margin-top: 20px;"><h4 style="font-weight: 700; color: #1f2937;">📌 비고</h4><div style="padding: 10px; background: #f3f4f6; border-radius: 4px;">${task.notes}</div></div>` : ''}
+                            ${task.notes ? `<div style="margin-top: 20px;"><h4 style="font-weight: 700; color: #1f2937;">📌 비고</h4><div style="padding: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px;">${task.notes}</div></div>` : ''}
 
-                            <div style="border-top: 1px solid #e5e7eb; margin-top: 15px; padding-top: 15px;">
-                                <button type="button" class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); editTask(${task.id})">편집</button>
-                                <button type="button" class="btn btn-sm btn-danger" onclick="event.stopPropagation(); deleteTask(${task.id})">삭제</button>
+                            <div style="border-top: 1px solid #e2e8f0; margin-top: 15px; padding-top: 15px;">
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); editTask(${task.id})">✏️ 편집</button>
+                                <button type="button" class="btn btn-sm btn-danger" onclick="event.stopPropagation(); deleteTask(${task.id})">🗑️ 삭제</button>
                             </div>
                         </div>
                     </div>
@@ -1044,7 +1066,7 @@
             const task = project.tasks.find(t => t.id === taskId);
             const newId = Math.max(...task.progressItems.map(p => p.id), 0) + 1;
             task.progressItems.push({ id: newId, content: '', startDate: '', endDate: '' });
-            saveToStorage();
+            saveToFirebase();
             applyFilters();
         }
 
@@ -1052,7 +1074,7 @@
             const project = projects.find(p => p.id === currentProjectId);
             const task = project.tasks.find(t => t.id === taskId);
             task.progressItems = task.progressItems.filter(p => p.id !== itemId);
-            saveToStorage();
+            saveToFirebase();
             applyFilters();
         }
 
@@ -1061,7 +1083,16 @@
             const task = project.tasks.find(t => t.id === taskId);
             const item = task.progressItems.find(p => p.id === itemId);
             item[field] = value;
-            saveToStorage();
+            saveToFirebase();
+        }
+
+        function updateProgressContent(taskId, itemId, content) {
+            const project = projects.find(p => p.id === currentProjectId);
+            const task = project.tasks.find(t => t.id === taskId);
+            const item = task.progressItems.find(p => p.id === itemId);
+            item.content = content;
+            saveToFirebase();
+            applyFilters();
         }
 
         function openProjectModal() {
@@ -1117,7 +1148,7 @@
             if (!confirm('정말 삭제하시겠습니까?')) return;
             const project = projects.find(p => p.id === currentProjectId);
             project.tasks = project.tasks.filter(t => t.id !== taskId);
-            saveToStorage();
+            saveToFirebase();
             applyFilters();
         }
 
@@ -1137,7 +1168,7 @@
             if (!currentProjectId || !confirm('정말 삭제하시겠습니까?')) return;
             projects = projects.filter(p => p.id !== currentProjectId);
             currentProjectId = projects.length > 0 ? projects[0].id : null;
-            saveToStorage();
+            saveToFirebase();
             renderProjectList();
             if (currentProjectId) renderContent();
         }
@@ -1176,7 +1207,7 @@
                 });
                 currentProjectId = projects[projects.length - 1].id;
             }
-            saveToStorage();
+            saveToFirebase();
             renderProjectList();
             renderContent();
             closeModal('projectModal');
@@ -1206,7 +1237,7 @@
                     progressItems: [{ id: 1, content: '', startDate: '', endDate: '' }]
                 });
             }
-            saveToStorage();
+            saveToFirebase();
             renderContent();
             closeModal('taskModal');
         });
@@ -1310,11 +1341,7 @@
             });
         }
 
-        // 모든 저장 함수 변경
-        // saveToStorage() 호출되는 곳을 saveToFirebase()로 변경
-        const originalSaveToStorage = saveToFirebase;
-        window.saveToStorage = saveToFirebase;
-
+        
         // 페이지 로드 시 초기화
         window.addEventListener('load', init);
     </script>
