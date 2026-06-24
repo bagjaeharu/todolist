@@ -7,12 +7,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
     
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebaseapp/10.7.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebaseapp/10.7.0/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebaseapp/10.7.0/firebase-auth-compat.js"></script>
+    <!-- Firebase SDK (최신 버전) -->
+    <script src="https://www.gstatic.com/firebaseapp/10.12.4/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebaseapp/10.12.4/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebaseapp/10.12.4/firebase-auth-compat.js"></script>
     
-    <!-- Firebase 초기화 (SDK 로드 완료 후 실행) -->
+    <!-- Firebase 초기화 -->
     <script>
         // Firebase 설정
         const firebaseConfig = {
@@ -25,24 +25,40 @@
             appId: "1:718944405362:web:5dbd1f2c3e4911b9f67feb"
         };
 
-        // Firebase 초기화 (문서 로드와 관계없이 실행)
-        if (typeof firebase !== 'undefined') {
-            if (!firebase.apps.length) {
-                firebase.initializeApp(firebaseConfig);
+        // Firebase SDK 로드 확인 및 초기화
+        function initializeFirebase() {
+            console.log('[1] Firebase 객체 존재 확인:', typeof firebase);
+            
+            if (typeof firebase === 'undefined') {
+                console.error('❌ Firebase SDK 로드 실패 - 3초 후 재시도');
+                setTimeout(initializeFirebase, 3000);
+                return;
             }
-            console.log('✅ Firebase 초기화 성공!');
+            
+            console.log('✅ Firebase SDK 로드 완료');
+            console.log('[2] Firebase Apps:', firebase.apps.length);
+            
+            // 중복 초기화 방지
+            if (firebase.apps.length === 0) {
+                firebase.initializeApp(firebaseConfig);
+                console.log('✅ Firebase 초기화 성공!');
+            } else {
+                console.log('ℹ️ Firebase 이미 초기화됨');
+            }
             
             // Firebase 익명 인증 설정
             firebase.auth().signInAnonymously()
-                .then(() => {
+                .then((userCredential) => {
                     console.log('✅ Firebase 익명 인증 성공!');
+                    console.log('[3] 사용자 UID:', userCredential.user.uid);
                 })
                 .catch((error) => {
-                    console.error('❌ Firebase 인증 실패:', error);
+                    console.error('❌ Firebase 인증 실패:', error.code, error.message);
                 });
-        } else {
-            console.error('❌ Firebase SDK 로드 실패');
         }
+        
+        // SDK 로드 완료 후 초기화 (100ms 후)
+        setTimeout(initializeFirebase, 100);
     </script>
 
     <style>
