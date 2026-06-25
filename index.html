@@ -14,7 +14,6 @@
     
     <!-- Firebase 초기화 -->
     <script>
-        // Firebase 설정
         const firebaseConfig = {
             apiKey: "AIzaSyDUt7Gl6KPZDBK5YT5J-GU2hSKIEXma5W4",
             authDomain: "todolist-7444b.firebaseapp.com",
@@ -25,48 +24,28 @@
             appId: "1:718944405362:web:5dbd1f2c3e4911b9f67feb"
         };
 
-        // Firebase SDK 로드 확인 및 초기화
         function initializeFirebase() {
-            console.log('[1] Firebase 객체 존재 확인:', typeof firebase);
-            
             if (typeof firebase === 'undefined') {
-                console.error('❌ Firebase SDK 로드 실패 - 3초 후 재시도');
                 setTimeout(initializeFirebase, 3000);
                 return;
             }
-            
-            console.log('✅ Firebase SDK 로드 완료');
-            console.log('[2] Firebase Apps:', firebase.apps.length);
-            
-            // 중복 초기화 방지
             if (firebase.apps.length === 0) {
                 firebase.initializeApp(firebaseConfig);
-                console.log('✅ Firebase 초기화 성공!');
-            } else {
-                console.log('ℹ️ Firebase 이미 초기화됨');
             }
-            
-            // Firebase 익명 인증 설정
             firebase.auth().signInAnonymously()
-                .then((userCredential) => {
-                    console.log('✅ Firebase 익명 인증 성공!');
-                    console.log('[3] 사용자 UID:', userCredential.user.uid);
+                .then(() => {
+                    console.log('✅ Firebase 익명 인증 성공');
+                    ensureAdminAccount();
                 })
                 .catch((error) => {
-                    console.error('❌ Firebase 인증 실패:', error.code, error.message);
+                    console.error('❌ Firebase 인증 실패:', error);
                 });
         }
-        
-        // SDK 로드 완료 후 초기화 (100ms 후)
         setTimeout(initializeFirebase, 100);
     </script>
 
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Nanum Gothic', sans-serif;
@@ -75,11 +54,340 @@
             padding: 20px;
         }
 
+        /* ========== 로그인/가입 화면 ========== */
+        .auth-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 50%, #1e40af 100%);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .auth-overlay.hidden { display: none; }
+
+        .auth-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 420px;
+            max-width: 95vw;
+            overflow: hidden;
+        }
+
+        .auth-header {
+            background: #f8fafc;
+            padding: 30px;
+            text-align: center;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .auth-header h1 {
+            font-size: 1.6em;
+            color: #1f2937;
+            margin-bottom: 6px;
+        }
+
+        .auth-header p {
+            color: #64748b;
+            font-size: 0.9em;
+        }
+
+        .auth-tabs {
+            display: flex;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 14px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.95em;
+            color: #94a3b8;
+            border: none;
+            background: transparent;
+            font-family: 'Nanum Gothic', sans-serif;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .auth-tab.active {
+            color: #2563eb;
+            border-bottom-color: #2563eb;
+        }
+
+        .auth-tab:hover:not(.active) {
+            color: #475569;
+        }
+
+        .auth-body {
+            padding: 30px;
+        }
+
+        .auth-form { display: none; }
+        .auth-form.active { display: block; }
+
+        .auth-form .form-group {
+            margin-bottom: 18px;
+        }
+
+        .auth-form .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: #374151;
+            font-weight: 700;
+            font-size: 0.9em;
+        }
+
+        .auth-form .form-group input,
+        .auth-form .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 0.95em;
+            font-family: 'Nanum Gothic', sans-serif;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .auth-form .form-group input:focus,
+        .auth-form .form-group select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        .auth-btn {
+            width: 100%;
+            padding: 14px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 700;
+            font-family: 'Nanum Gothic', sans-serif;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 8px;
+        }
+
+        .auth-btn:hover { background: #1d4ed8; }
+        .auth-btn:disabled { background: #94a3b8; cursor: not-allowed; }
+
+        .auth-msg {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 0.9em;
+            display: none;
+        }
+
+        .auth-msg.error {
+            display: block;
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .auth-msg.success {
+            display: block;
+            background: #f0fdf4;
+            color: #16a34a;
+            border: 1px solid #bbf7d0;
+        }
+
+        .auth-msg.info {
+            display: block;
+            background: #eff6ff;
+            color: #2563eb;
+            border: 1px solid #bfdbfe;
+        }
+
+        /* ========== 로그인 사용자 표시 바 ========== */
+        .user-bar {
+            background: #1e3a5f;
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 12px 12px 0 0;
+            font-size: 0.9em;
+        }
+
+        .user-bar .user-info span {
+            margin-right: 16px;
+        }
+
+        .user-bar .user-info .user-name {
+            font-weight: 700;
+        }
+
+        .user-bar .user-info .user-team {
+            color: #93c5fd;
+        }
+
+        .user-bar-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-bar {
+            padding: 6px 14px;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 6px;
+            background: transparent;
+            color: white;
+            cursor: pointer;
+            font-family: 'Nanum Gothic', sans-serif;
+            font-size: 0.85em;
+            font-weight: 700;
+            transition: all 0.2s;
+        }
+
+        .btn-bar:hover {
+            background: rgba(255,255,255,0.15);
+        }
+
+        .btn-bar.admin-btn {
+            background: rgba(234, 179, 8, 0.2);
+            border-color: #eab308;
+            color: #fde68a;
+        }
+
+        .btn-bar.admin-btn:hover {
+            background: rgba(234, 179, 8, 0.35);
+        }
+
+        /* ========== 관리자 패널 ========== */
+        .admin-panel {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 5000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .admin-panel.active { display: flex; }
+
+        .admin-content {
+            background: white;
+            border-radius: 12px;
+            width: 700px;
+            max-width: 95vw;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .admin-header {
+            padding: 24px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .admin-header h2 {
+            font-size: 1.3em;
+            color: #1f2937;
+        }
+
+        .admin-tabs {
+            display: flex;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .admin-tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.9em;
+            color: #94a3b8;
+            border: none;
+            background: transparent;
+            font-family: 'Nanum Gothic', sans-serif;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -1px;
+            transition: all 0.2s;
+        }
+
+        .admin-tab.active {
+            color: #2563eb;
+            border-bottom-color: #2563eb;
+        }
+
+        .admin-body {
+            padding: 24px;
+        }
+
+        .admin-section { display: none; }
+        .admin-section.active { display: block; }
+
+        .user-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s;
+        }
+
+        .user-card:hover { background: #f8fafc; }
+
+        .user-card-info {
+            flex: 1;
+        }
+
+        .user-card-info .user-card-name {
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 4px;
+        }
+
+        .user-card-info .user-card-detail {
+            font-size: 0.85em;
+            color: #64748b;
+        }
+
+        .user-card-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.78em;
+            font-weight: 700;
+        }
+
+        .badge-pending { background: #fef3c7; color: #92400e; }
+        .badge-approved { background: #d1fae5; color: #065f46; }
+        .badge-rejected { background: #fee2e2; color: #991b1b; }
+
+        .empty-admin {
+            text-align: center;
+            padding: 40px;
+            color: #94a3b8;
+        }
+
+        /* ========== 메인 앱 (기존 스타일 유지) ========== */
         .container {
             max-width: 1400px;
             margin: 0 auto;
             background: white;
-            border-radius: 12px;
+            border-radius: 0 0 12px 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
             overflow: hidden;
         }
@@ -92,16 +400,8 @@
             border-bottom: 1px solid #e2e8f0;
         }
 
-        header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            font-weight: 700;
-        }
-
-        .header-subtitle {
-            opacity: 0.9;
-            font-size: 0.95em;
-        }
+        header h1 { font-size: 2.5em; margin-bottom: 10px; font-weight: 700; }
+        .header-subtitle { opacity: 0.9; font-size: 0.95em; }
 
         .main-content {
             display: grid;
@@ -125,10 +425,7 @@
             font-weight: 700;
         }
 
-        .project-list {
-            list-style: none;
-            margin-bottom: 20px;
-        }
+        .project-list { list-style: none; margin-bottom: 20px; }
 
         .project-item {
             padding: 12px;
@@ -141,10 +438,7 @@
             font-size: 0.9em;
         }
 
-        .project-item:hover {
-            background: #f1f5f9;
-            border-left-color: #60a5fa;
-        }
+        .project-item:hover { background: #f1f5f9; border-left-color: #60a5fa; }
 
         .project-item.active {
             background: #dbeafe;
@@ -168,14 +462,9 @@
             font-size: 0.9em;
         }
 
-        .add-project-btn:hover {
-            background: #2563eb;
-        }
+        .add-project-btn:hover { background: #2563eb; }
 
-        .content-area {
-            padding: 30px;
-            overflow-y: auto;
-        }
+        .content-area { padding: 30px; overflow-y: auto; }
 
         .project-header {
             display: flex;
@@ -186,16 +475,9 @@
             border-bottom: 2px solid #e2e8f0;
         }
 
-        .project-header h2 {
-            color: #1f2937;
-            font-size: 1.8em;
-            font-weight: 700;
-        }
+        .project-header h2 { color: #1f2937; font-size: 1.8em; font-weight: 700; }
 
-        .project-actions {
-            display: flex;
-            gap: 10px;
-        }
+        .project-actions { display: flex; gap: 10px; }
 
         .btn {
             padding: 10px 16px;
@@ -208,41 +490,14 @@
             transition: all 0.3s;
         }
 
-        .btn-primary {
-            background: #3b82f6;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #2563eb;
-        }
-
-        .btn-danger {
-            background: #ef4444;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #dc2626;
-        }
-
-        .btn-secondary {
-            background: #6b7280;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #4b5563;
-        }
-
-        .btn-search {
-            background: #16a34a;
-            color: white;
-        }
-
-        .btn-search:hover {
-            background: #15803d;
-        }
+        .btn-primary { background: #3b82f6; color: white; }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-secondary { background: #6b7280; color: white; }
+        .btn-secondary:hover { background: #4b5563; }
+        .btn-search { background: #16a34a; color: white; }
+        .btn-search:hover { background: #15803d; }
 
         .filters-section {
             background: #f8fafc;
@@ -251,12 +506,7 @@
             margin-bottom: 20px;
         }
 
-        .filters-title {
-            font-size: 1em;
-            font-weight: 700;
-            color: #1f2937;
-            margin-bottom: 15px;
-        }
+        .filters-title { font-size: 1em; font-weight: 700; color: #1f2937; margin-bottom: 15px; }
 
         .filters {
             display: grid;
@@ -265,17 +515,8 @@
             margin-bottom: 15px;
         }
 
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .filter-group label {
-            font-size: 0.9em;
-            font-weight: 700;
-            color: #1f2937;
-        }
+        .filter-group { display: flex; flex-direction: column; gap: 6px; }
+        .filter-group label { font-size: 0.9em; font-weight: 700; color: #1f2937; }
 
         .filter-group select {
             padding: 10px;
@@ -291,10 +532,7 @@
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
 
-        .filter-buttons {
-            display: flex;
-            gap: 10px;
-        }
+        .filter-buttons { display: flex; gap: 10px; }
 
         .stats-bar {
             display: grid;
@@ -311,19 +549,8 @@
             border-left: 4px solid #3b82f6;
         }
 
-        .stat-card h4 {
-            color: #64748b;
-            font-size: 0.85em;
-            text-transform: uppercase;
-            margin-bottom: 8px;
-            font-weight: 700;
-        }
-
-        .stat-card .number {
-            font-size: 2em;
-            font-weight: 700;
-            color: #3b82f6;
-        }
+        .stat-card h4 { color: #64748b; font-size: 0.85em; text-transform: uppercase; margin-bottom: 8px; font-weight: 700; }
+        .stat-card .number { font-size: 2em; font-weight: 700; color: #3b82f6; }
 
         .task-row {
             padding: 12px 15px;
@@ -339,17 +566,9 @@
             align-items: center;
         }
 
-        .task-row:hover {
-            background: #f8fafc;
-            border-color: #3b82f6;
-        }
+        .task-row:hover { background: #f8fafc; border-color: #3b82f6; }
 
-        .task-cell {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            font-size: 0.9em;
-        }
+        .task-cell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9em; }
 
         .task-status {
             padding: 4px 12px;
@@ -360,20 +579,9 @@
             display: inline-block;
         }
 
-        .status-완료 {
-            background: #d1fae5;
-            color: #065f46;
-        }
-
-        .status-진행중 {
-            background: #dbeafe;
-            color: #0c4a6e;
-        }
-
-        .status-예정 {
-            background: #fef3c7;
-            color: #78350f;
-        }
+        .status-완료 { background: #d1fae5; color: #065f46; }
+        .status-진행중 { background: #dbeafe; color: #0c4a6e; }
+        .status-예정 { background: #fef3c7; color: #78350f; }
 
         .task-details {
             display: none;
@@ -386,19 +594,10 @@
             grid-column: 1 / -1;
         }
 
-        .task-details.show {
-            display: block;
-        }
+        .task-details.show { display: block; }
 
-        .expand-icon {
-            display: inline-block;
-            margin-right: 8px;
-            transition: transform 0.3s;
-        }
-
-        .task-row.expanded .expand-icon {
-            transform: rotate(180deg);
-        }
+        .expand-icon { display: inline-block; margin-right: 8px; transition: transform 0.3s; }
+        .task-row.expanded .expand-icon { transform: rotate(180deg); }
 
         .progress-item {
             background: white;
@@ -420,23 +619,10 @@
             border-radius: 4px;
         }
 
-        .progress-item-dates {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
+        .progress-item-dates { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
 
-        .progress-item-date {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .progress-item-date label {
-            font-size: 0.8em;
-            font-weight: 700;
-            color: #6b7280;
-        }
+        .progress-item-date { display: flex; flex-direction: column; gap: 4px; }
+        .progress-item-date label { font-size: 0.8em; font-weight: 700; color: #6b7280; }
 
         .progress-item-date input {
             padding: 8px;
@@ -466,26 +652,19 @@
             font-size: 0.9em;
         }
 
-        .add-progress-btn:hover {
-            background: #2563eb;
-        }
+        .add-progress-btn:hover { background: #2563eb; }
 
         .modal {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.5);
             z-index: 1000;
             justify-content: center;
             align-items: center;
         }
 
-        .modal.active {
-            display: flex;
-        }
+        .modal.active { display: flex; }
 
         .modal-content {
             background: white;
@@ -498,24 +677,10 @@
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         }
 
-        .modal-header {
-            font-size: 1.5em;
-            font-weight: 700;
-            color: #1f2937;
-            margin-bottom: 20px;
-        }
+        .modal-header { font-size: 1.5em; font-weight: 700; color: #1f2937; margin-bottom: 20px; }
 
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 6px;
-            color: #1f2937;
-            font-weight: 700;
-            font-size: 0.9em;
-        }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 6px; color: #1f2937; font-weight: 700; font-size: 0.9em; }
 
         .form-group input,
         .form-group select,
@@ -528,10 +693,7 @@
             font-family: 'Nanum Gothic', sans-serif;
         }
 
-        .form-group textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
+        .form-group textarea { resize: vertical; min-height: 80px; }
 
         .form-group input:focus,
         .form-group select:focus,
@@ -541,55 +703,25 @@
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
 
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
 
-        .modal-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 25px;
-            justify-content: flex-end;
-        }
+        .modal-actions { display: flex; gap: 10px; margin-top: 25px; justify-content: flex-end; }
 
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #9ca3af;
-        }
+        .empty-state { text-align: center; padding: 60px 20px; color: #9ca3af; }
+        .empty-state h3 { color: #6b7280; margin-bottom: 10px; font-weight: 700; }
 
-        .empty-state h3 {
-            color: #6b7280;
-            margin-bottom: 10px;
-            font-weight: 700;
-        }
-
-        .color-palette {
-            display: grid;
-            grid-template-columns: repeat(9, 1fr);
-            gap: 8px;
-            margin-top: 10px;
-        }
+        .color-palette { display: grid; grid-template-columns: repeat(9, 1fr); gap: 8px; margin-top: 10px; }
 
         .color-option {
-            width: 30px;
-            height: 30px;
+            width: 30px; height: 30px;
             border-radius: 4px;
             cursor: pointer;
             border: 2px solid transparent;
             transition: all 0.2s;
         }
 
-        .color-option:hover {
-            border-color: #1f2937;
-        }
-
-        .color-option.selected {
-            border-color: #1f2937;
-            box-shadow: 0 0 0 2px white, 0 0 0 4px #1f2937;
-        }
+        .color-option:hover { border-color: #1f2937; }
+        .color-option.selected { border-color: #1f2937; box-shadow: 0 0 0 2px white, 0 0 0 4px #1f2937; }
 
         .result-count {
             padding: 10px;
@@ -600,94 +732,143 @@
             font-weight: 700;
         }
 
-        .btn-sm {
-            padding: 6px 12px;
-            font-size: 0.85em;
-        }
+        .btn-sm { padding: 6px 12px; font-size: 0.85em; }
+        .task-list { display: grid; gap: 0; }
 
-        .task-list {
-            display: grid;
-            gap: 0;
-        }
-
-        .task-summary {
-            display: grid;
-            grid-template-columns: 150px 150px;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .task-summary-item {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .task-summary-label {
-            font-weight: 700;
-            color: #6b7280;
-            font-size: 0.8em;
-        }
-
-        .task-summary-value {
-            color: #1f2937;
-        }
+        .task-summary { display: grid; grid-template-columns: 150px 150px; gap: 15px; margin-bottom: 20px; }
+        .task-summary-item { display: flex; flex-direction: column; gap: 4px; }
+        .task-summary-label { font-weight: 700; color: #6b7280; font-size: 0.8em; }
+        .task-summary-value { color: #1f2937; }
 
         @media (max-width: 768px) {
-            .main-content {
-                grid-template-columns: 1fr;
-            }
-
-            .task-row {
-                grid-template-columns: 80px 80px 150px 80px;
-            }
-
-            .stats-bar {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            header h1 {
-                font-size: 1.5em;
-            }
-
-            .project-header h2 {
-                font-size: 1.3em;
-            }
-
-            .progress-item-dates {
-                grid-template-columns: 1fr;
-            }
+            .main-content { grid-template-columns: 1fr; }
+            .task-row { grid-template-columns: 80px 80px 150px 80px; }
+            .stats-bar { grid-template-columns: repeat(2, 1fr); }
+            header h1 { font-size: 1.5em; }
+            .project-header h2 { font-size: 1.3em; }
+            .progress-item-dates { grid-template-columns: 1fr; }
+            .auth-card { width: 95vw; }
+            .admin-content { width: 95vw; }
+            .user-bar { flex-direction: column; gap: 8px; text-align: center; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>📋 온라인영업팀 To-do List</h1>
-            <p class="header-subtitle">팀 프로젝트 과제 관리 및 진행 상황 공유</p>
-        </header>
 
-        <div class="main-content">
-            <div class="sidebar">
-                <button class="add-project-btn" onclick="openProjectModal()">+ 프로젝트 추가</button>
-                <h3>프로젝트</h3>
-                <ul class="project-list" id="projectList"></ul>
-
-                <h3>추가 기능</h3>
-                <button class="add-project-btn" onclick="openExportModal()" style="background: #16a34a;">📊 엑셀 추출</button>
+    <!-- ========== 로그인/가입 오버레이 ========== -->
+    <div class="auth-overlay" id="authOverlay">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h1>📋 온라인영업팀 To-do List</h1>
+                <p>팀 프로젝트 과제 관리 시스템</p>
             </div>
-
-            <div class="content-area">
-                <div class="project-header">
-                    <h2 id="currentProjectName">프로젝트를 선택하세요</h2>
-                    <div class="project-actions">
-                        <button class="btn btn-primary" onclick="openTaskModal()">+ 과제 추가</button>
-                        <button class="btn btn-secondary" onclick="editCurrentProject()">프로젝트 편집</button>
-                        <button class="btn btn-danger" onclick="deleteCurrentProject()">프로젝트 삭제</button>
+            <div class="auth-tabs">
+                <button class="auth-tab active" onclick="switchAuthTab('login')">로그인</button>
+                <button class="auth-tab" onclick="switchAuthTab('register')">가입 신청</button>
+            </div>
+            <div class="auth-body">
+                <!-- 로그인 폼 -->
+                <div class="auth-form active" id="loginForm">
+                    <div class="auth-msg" id="loginMsg"></div>
+                    <div class="form-group">
+                        <label for="loginId">아이디</label>
+                        <input type="text" id="loginId" placeholder="아이디를 입력하세요" autocomplete="username">
                     </div>
+                    <div class="form-group">
+                        <label for="loginPw">비밀번호</label>
+                        <input type="password" id="loginPw" placeholder="비밀번호를 입력하세요" autocomplete="current-password">
+                    </div>
+                    <button class="auth-btn" onclick="handleLogin()">로그인</button>
                 </div>
 
-                <div id="projectContent"></div>
+                <!-- 가입 신청 폼 -->
+                <div class="auth-form" id="registerForm">
+                    <div class="auth-msg" id="registerMsg"></div>
+                    <div class="form-group">
+                        <label for="regId">아이디 *</label>
+                        <input type="text" id="regId" placeholder="사용할 아이디를 입력하세요" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="regPw">비밀번호 *</label>
+                        <input type="password" id="regPw" placeholder="비밀번호를 입력하세요" autocomplete="new-password">
+                    </div>
+                    <div class="form-group">
+                        <label for="regPwConfirm">비밀번호 확인 *</label>
+                        <input type="password" id="regPwConfirm" placeholder="비밀번호를 다시 입력하세요" autocomplete="new-password">
+                    </div>
+                    <div class="form-group">
+                        <label for="regTeam">팀 소속 *</label>
+                        <input type="text" id="regTeam" placeholder="소속 팀명을 입력하세요" autocomplete="organization">
+                    </div>
+                    <div class="form-group">
+                        <label for="regName">이름 *</label>
+                        <input type="text" id="regName" placeholder="실명을 입력하세요" autocomplete="name">
+                    </div>
+                    <button class="auth-btn" onclick="handleRegister()">가입 신청</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 관리자 패널 ========== -->
+    <div class="admin-panel" id="adminPanel">
+        <div class="admin-content">
+            <div class="admin-header">
+                <h2>👤 사용자 관리</h2>
+                <button class="btn btn-secondary" onclick="closeAdminPanel()">닫기</button>
+            </div>
+            <div class="admin-tabs">
+                <button class="admin-tab active" onclick="switchAdminTab('pending')">승인 대기 <span id="pendingCount"></span></button>
+                <button class="admin-tab" onclick="switchAdminTab('approved')">승인 완료</button>
+                <button class="admin-tab" onclick="switchAdminTab('rejected')">반려</button>
+            </div>
+            <div class="admin-body">
+                <div class="admin-section active" id="adminPending"></div>
+                <div class="admin-section" id="adminApproved"></div>
+                <div class="admin-section" id="adminRejected"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 유저 바 + 메인 앱 (로그인 후 표시) ========== -->
+    <div id="appWrapper" style="display:none; max-width:1400px; margin:0 auto;">
+        <div class="user-bar">
+            <div class="user-info">
+                <span class="user-name" id="displayUserName"></span>
+                <span class="user-team" id="displayUserTeam"></span>
+            </div>
+            <div class="user-bar-actions">
+                <button class="btn-bar admin-btn" id="adminPanelBtn" style="display:none;" onclick="openAdminPanel()">👤 사용자 관리</button>
+                <button class="btn-bar" onclick="handleLogout()">로그아웃</button>
+            </div>
+        </div>
+
+        <div class="container">
+            <header>
+                <h1>📋 온라인영업팀 To-do List</h1>
+                <p class="header-subtitle">팀 프로젝트 과제 관리 및 진행 상황 공유</p>
+            </header>
+
+            <div class="main-content">
+                <div class="sidebar">
+                    <button class="add-project-btn" onclick="openProjectModal()">+ 프로젝트 추가</button>
+                    <h3>프로젝트</h3>
+                    <ul class="project-list" id="projectList"></ul>
+                    <h3>추가 기능</h3>
+                    <button class="add-project-btn" onclick="openExportModal()" style="background: #16a34a;">📊 엑셀 추출</button>
+                </div>
+
+                <div class="content-area">
+                    <div class="project-header">
+                        <h2 id="currentProjectName">프로젝트를 선택하세요</h2>
+                        <div class="project-actions">
+                            <button class="btn btn-primary" onclick="openTaskModal()">+ 과제 추가</button>
+                            <button class="btn btn-secondary" onclick="editCurrentProject()">프로젝트 편집</button>
+                            <button class="btn btn-danger" onclick="deleteCurrentProject()">프로젝트 삭제</button>
+                        </div>
+                    </div>
+                    <div id="projectContent"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -708,41 +889,30 @@
                 <div class="form-group">
                     <label>프로젝트 색상</label>
                     <div class="color-palette" id="projectColorPalette">
-                        <!-- 빨강 계열 -->
                         <div class="color-option" style="background: #ef4444;" data-color="#ef4444"></div>
                         <div class="color-option" style="background: #dc2626;" data-color="#dc2626"></div>
                         <div class="color-option" style="background: #991b1b;" data-color="#991b1b"></div>
-                        <!-- 주황 계열 -->
                         <div class="color-option" style="background: #f97316;" data-color="#f97316"></div>
                         <div class="color-option" style="background: #ea580c;" data-color="#ea580c"></div>
                         <div class="color-option" style="background: #9a3412;" data-color="#9a3412"></div>
-                        <!-- 노랑 계열 -->
                         <div class="color-option" style="background: #eab308;" data-color="#eab308"></div>
                         <div class="color-option" style="background: #ca8a04;" data-color="#ca8a04"></div>
                         <div class="color-option" style="background: #854d0e;" data-color="#854d0e"></div>
-                        
-                        <!-- 초록 계열 -->
                         <div class="color-option" style="background: #16a34a;" data-color="#16a34a"></div>
                         <div class="color-option" style="background: #15803d;" data-color="#15803d"></div>
                         <div class="color-option" style="background: #166534;" data-color="#166534"></div>
-                        <!-- 시안 계열 -->
                         <div class="color-option" style="background: #06b6d4;" data-color="#06b6d4"></div>
                         <div class="color-option" style="background: #0891b2;" data-color="#0891b2"></div>
                         <div class="color-option" style="background: #0e7490;" data-color="#0e7490"></div>
-                        <!-- 파랑 계열 -->
                         <div class="color-option" style="background: #2563eb;" data-color="#2563eb"></div>
                         <div class="color-option" style="background: #1d4ed8;" data-color="#1d4ed8"></div>
                         <div class="color-option" style="background: #1e40af;" data-color="#1e40af"></div>
-                        
-                        <!-- 보라 계열 -->
                         <div class="color-option" style="background: #a855f7;" data-color="#a855f7"></div>
                         <div class="color-option" style="background: #9333ea;" data-color="#9333ea"></div>
                         <div class="color-option" style="background: #7e22ce;" data-color="#7e22ce"></div>
-                        <!-- 핑크 계열 -->
                         <div class="color-option" style="background: #ec4899;" data-color="#ec4899"></div>
                         <div class="color-option" style="background: #db2777;" data-color="#db2777"></div>
                         <div class="color-option" style="background: #be185d;" data-color="#be185d"></div>
-                        <!-- 회색 계열 -->
                         <div class="color-option" style="background: #6b7280;" data-color="#6b7280"></div>
                         <div class="color-option" style="background: #4b5563;" data-color="#4b5563"></div>
                         <div class="color-option" style="background: #374151;" data-color="#374151"></div>
@@ -826,44 +996,367 @@
 
     <script>
         // ==========================================
-        
+        // 인증 시스템
+        // ==========================================
+        let loggedInUser = null; // { id, name, team, isAdmin }
+
+        // SHA-256 해시 함수
+        async function hashPassword(pw) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(pw);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // 관리자 계정 자동 생성 (최초 1회)
+        async function ensureAdminAccount() {
+            const adminRef = firebase.database().ref('app_users/2009607');
+            const snapshot = await adminRef.once('value');
+            if (!snapshot.exists()) {
+                const hashedPw = await hashPassword('2009607');
+                await adminRef.set({
+                    id: '2009607',
+                    password: hashedPw,
+                    name: '관리자',
+                    team: '온라인영업팀',
+                    status: 'approved',
+                    isAdmin: true,
+                    createdAt: Date.now()
+                });
+                console.log('✅ 관리자 계정 자동 생성 완료');
+            }
+        }
+
+        // 탭 전환
+        function switchAuthTab(tab) {
+            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+
+            if (tab === 'login') {
+                document.querySelectorAll('.auth-tab')[0].classList.add('active');
+                document.getElementById('loginForm').classList.add('active');
+            } else {
+                document.querySelectorAll('.auth-tab')[1].classList.add('active');
+                document.getElementById('registerForm').classList.add('active');
+            }
+            // 메시지 초기화
+            document.getElementById('loginMsg').className = 'auth-msg';
+            document.getElementById('loginMsg').textContent = '';
+            document.getElementById('registerMsg').className = 'auth-msg';
+            document.getElementById('registerMsg').textContent = '';
+        }
+
+        function showAuthMsg(elementId, text, type) {
+            const el = document.getElementById(elementId);
+            el.textContent = text;
+            el.className = 'auth-msg ' + type;
+        }
+
+        // 로그인 처리
+        async function handleLogin() {
+            const id = document.getElementById('loginId').value.trim();
+            const pw = document.getElementById('loginPw').value;
+
+            if (!id || !pw) {
+                showAuthMsg('loginMsg', '아이디와 비밀번호를 입력해 주세요.', 'error');
+                return;
+            }
+
+            try {
+                const userRef = firebase.database().ref('app_users/' + id);
+                const snapshot = await userRef.once('value');
+
+                if (!snapshot.exists()) {
+                    showAuthMsg('loginMsg', '존재하지 않는 아이디입니다.', 'error');
+                    return;
+                }
+
+                const userData = snapshot.val();
+                const hashedPw = await hashPassword(pw);
+
+                if (userData.password !== hashedPw) {
+                    showAuthMsg('loginMsg', '비밀번호가 일치하지 않습니다.', 'error');
+                    return;
+                }
+
+                if (userData.status === 'pending') {
+                    showAuthMsg('loginMsg', '가입 승인 대기 중입니다. 관리자 승인 후 로그인 가능합니다.', 'info');
+                    return;
+                }
+
+                if (userData.status === 'rejected') {
+                    showAuthMsg('loginMsg', '가입 신청이 반려되었습니다. 관리자에게 문의하세요.', 'error');
+                    return;
+                }
+
+                // 로그인 성공
+                loggedInUser = {
+                    id: userData.id,
+                    name: userData.name,
+                    team: userData.team,
+                    isAdmin: userData.isAdmin || false
+                };
+
+                // 세션 저장
+                sessionStorage.setItem('loggedInUser', JSON.stringify(loggedInUser));
+
+                enterApp();
+            } catch (error) {
+                console.error('로그인 오류:', error);
+                showAuthMsg('loginMsg', '로그인 중 오류가 발생했습니다.', 'error');
+            }
+        }
+
+        // 가입 신청 처리
+        async function handleRegister() {
+            const id = document.getElementById('regId').value.trim();
+            const pw = document.getElementById('regPw').value;
+            const pwConfirm = document.getElementById('regPwConfirm').value;
+            const team = document.getElementById('regTeam').value;
+            const name = document.getElementById('regName').value.trim();
+
+            if (!id || !pw || !pwConfirm || !team || !name) {
+                showAuthMsg('registerMsg', '모든 필수 항목을 입력해 주세요.', 'error');
+                return;
+            }
+
+            if (pw !== pwConfirm) {
+                showAuthMsg('registerMsg', '비밀번호가 일치하지 않습니다.', 'error');
+                return;
+            }
+
+            if (pw.length < 4) {
+                showAuthMsg('registerMsg', '비밀번호는 4자 이상이어야 합니다.', 'error');
+                return;
+            }
+
+            try {
+                // 중복 ID 확인
+                const existRef = firebase.database().ref('app_users/' + id);
+                const existSnap = await existRef.once('value');
+
+                if (existSnap.exists()) {
+                    showAuthMsg('registerMsg', '이미 사용 중인 아이디입니다.', 'error');
+                    return;
+                }
+
+                const hashedPw = await hashPassword(pw);
+
+                await existRef.set({
+                    id: id,
+                    password: hashedPw,
+                    name: name,
+                    team: team,
+                    status: 'pending',
+                    isAdmin: false,
+                    createdAt: Date.now()
+                });
+
+                showAuthMsg('registerMsg', '가입 신청이 완료되었습니다! 관리자 승인 후 로그인 가능합니다.', 'success');
+
+                // 폼 초기화
+                document.getElementById('regId').value = '';
+                document.getElementById('regPw').value = '';
+                document.getElementById('regPwConfirm').value = '';
+                document.getElementById('regTeam').value = '';
+                document.getElementById('regName').value = '';
+            } catch (error) {
+                console.error('가입 오류:', error);
+                showAuthMsg('registerMsg', '가입 신청 중 오류가 발생했습니다.', 'error');
+            }
+        }
+
+        // 엔터키 로그인
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                const authOverlay = document.getElementById('authOverlay');
+                if (!authOverlay.classList.contains('hidden')) {
+                    const loginFormActive = document.getElementById('loginForm').classList.contains('active');
+                    if (loginFormActive) {
+                        handleLogin();
+                    }
+                }
+            }
+        });
+
+        // 앱 진입
+        function enterApp() {
+            document.getElementById('authOverlay').classList.add('hidden');
+            document.getElementById('appWrapper').style.display = 'block';
+
+            document.getElementById('displayUserName').textContent = loggedInUser.name + ' (' + loggedInUser.id + ')';
+            document.getElementById('displayUserTeam').textContent = loggedInUser.team;
+
+            if (loggedInUser.isAdmin) {
+                document.getElementById('adminPanelBtn').style.display = 'inline-block';
+            }
+
+            initApp();
+        }
+
+        // 로그아웃
+        function handleLogout() {
+            sessionStorage.removeItem('loggedInUser');
+            loggedInUser = null;
+            document.getElementById('appWrapper').style.display = 'none';
+            document.getElementById('authOverlay').classList.remove('hidden');
+            document.getElementById('loginId').value = '';
+            document.getElementById('loginPw').value = '';
+            document.getElementById('loginMsg').className = 'auth-msg';
+        }
+
+        // 세션 복구
+        function checkSession() {
+            const saved = sessionStorage.getItem('loggedInUser');
+            if (saved) {
+                loggedInUser = JSON.parse(saved);
+                enterApp();
+            }
+        }
+
+        // ==========================================
+        // 관리자 패널
+        // ==========================================
+        function openAdminPanel() {
+            document.getElementById('adminPanel').classList.add('active');
+            loadAdminUsers();
+        }
+
+        function closeAdminPanel() {
+            document.getElementById('adminPanel').classList.remove('active');
+        }
+
+        function switchAdminTab(tab) {
+            document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+
+            const tabs = document.querySelectorAll('.admin-tab');
+            const sections = ['adminPending', 'adminApproved', 'adminRejected'];
+            const idx = ['pending', 'approved', 'rejected'].indexOf(tab);
+            tabs[idx].classList.add('active');
+            document.getElementById(sections[idx]).classList.add('active');
+        }
+
+        async function loadAdminUsers() {
+            try {
+                const snapshot = await firebase.database().ref('app_users').once('value');
+                const users = snapshot.val() || {};
+
+                const pending = [], approved = [], rejected = [];
+
+                Object.values(users).forEach(u => {
+                    if (u.isAdmin) return; // 관리자 계정은 목록에서 제외
+                    if (u.status === 'pending') pending.push(u);
+                    else if (u.status === 'approved') approved.push(u);
+                    else if (u.status === 'rejected') rejected.push(u);
+                });
+
+                // 대기 수 표시
+                document.getElementById('pendingCount').textContent = pending.length > 0 ? '(' + pending.length + ')' : '';
+
+                // 승인 대기
+                document.getElementById('adminPending').innerHTML = pending.length === 0
+                    ? '<div class="empty-admin">승인 대기 중인 사용자가 없습니다.</div>'
+                    : pending.map(u => `
+                        <div class="user-card">
+                            <div class="user-card-info">
+                                <div class="user-card-name">${escapeHtml(u.name)} <span class="badge badge-pending">대기</span></div>
+                                <div class="user-card-detail">아이디: ${escapeHtml(u.id)} · 소속: ${escapeHtml(u.team)} · 신청일: ${new Date(u.createdAt).toLocaleDateString('ko-KR')}</div>
+                            </div>
+                            <div class="user-card-actions">
+                                <button class="btn btn-sm btn-primary" onclick="approveUser('${u.id}')">승인</button>
+                                <button class="btn btn-sm btn-danger" onclick="rejectUser('${u.id}')">반려</button>
+                            </div>
+                        </div>
+                    `).join('');
+
+                // 승인 완료
+                document.getElementById('adminApproved').innerHTML = approved.length === 0
+                    ? '<div class="empty-admin">승인된 사용자가 없습니다.</div>'
+                    : approved.map(u => `
+                        <div class="user-card">
+                            <div class="user-card-info">
+                                <div class="user-card-name">${escapeHtml(u.name)} <span class="badge badge-approved">승인</span></div>
+                                <div class="user-card-detail">아이디: ${escapeHtml(u.id)} · 소속: ${escapeHtml(u.team)}</div>
+                            </div>
+                            <div class="user-card-actions">
+                                <button class="btn btn-sm btn-danger" onclick="deleteUser('${u.id}')">삭제</button>
+                            </div>
+                        </div>
+                    `).join('');
+
+                // 반려
+                document.getElementById('adminRejected').innerHTML = rejected.length === 0
+                    ? '<div class="empty-admin">반려된 사용자가 없습니다.</div>'
+                    : rejected.map(u => `
+                        <div class="user-card">
+                            <div class="user-card-info">
+                                <div class="user-card-name">${escapeHtml(u.name)} <span class="badge badge-rejected">반려</span></div>
+                                <div class="user-card-detail">아이디: ${escapeHtml(u.id)} · 소속: ${escapeHtml(u.team)}</div>
+                            </div>
+                            <div class="user-card-actions">
+                                <button class="btn btn-sm btn-primary" onclick="approveUser('${u.id}')">승인</button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteUser('${u.id}')">삭제</button>
+                            </div>
+                        </div>
+                    `).join('');
+
+            } catch (error) {
+                console.error('사용자 목록 로드 실패:', error);
+            }
+        }
+
+        async function approveUser(userId) {
+            await firebase.database().ref('app_users/' + userId + '/status').set('approved');
+            loadAdminUsers();
+        }
+
+        async function rejectUser(userId) {
+            if (!confirm(userId + ' 사용자를 반려하시겠습니까?')) return;
+            await firebase.database().ref('app_users/' + userId + '/status').set('rejected');
+            loadAdminUsers();
+        }
+
+        async function deleteUser(userId) {
+            if (!confirm(userId + ' 사용자를 삭제하시겠습니까?')) return;
+            await firebase.database().ref('app_users/' + userId).remove();
+            loadAdminUsers();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ==========================================
+        // 기존 To-do List 앱 로직
+        // ==========================================
         let projects = [];
-        let currentUserId = null; // Firebase 인증 후 설정됨
+        let currentUserId = null;
         let currentProjectId = null;
         let editingTaskId = null;
         let editingProjectId = null;
-        
-        // Database를 필요할 때 가져오는 함수
+
         function getDatabase() {
             return firebase.database();
         }
 
-        // 초기화
-function init() {
-    // 1. 안전 장치: firebase 객체가 존재하는지 먼저 확인합니다.
-    if (typeof firebase === 'undefined') {
-        console.error('❌ Firebase가 로드되지 않아 init()을 보류합니다. 네트워크 상태를 확인하세요.');
-        // 필요한 경우 1초 뒤에 다시 시도하도록 설정할 수 있습니다.
-        setTimeout(init, 1000); 
-        return; 
-    }
+        function initApp() {
+            if (typeof firebase === 'undefined') {
+                setTimeout(initApp, 1000);
+                return;
+            }
 
-    console.log('초기화 시작...');
-    
-    // 2. Firebase가 정상적으로 있을 때만 인증 절차를 진행합니다.
-    firebase.auth().onAuthStateChanged((user) => {
-        if (user) {
-            currentUserId = user.uid;
-            console.log('✅ 현재 사용자 ID:', currentUserId);
-            
-            loadFromFirebase();
-            console.log('색상 팔레트 설정...');
-            setupColorPalettes();
-        } else {
-            console.error('❌ 사용자 인증 실패 또는 로그아웃 상태');
+            firebase.auth().onAuthStateChanged((user) => {
+                if (user) {
+                    currentUserId = user.uid;
+                    loadFromFirebase();
+                    setupColorPalettes();
+                }
+            });
         }
-    });
-}
 
         function addSampleData() {
             const now = Date.now();
@@ -1276,7 +1769,6 @@ function init() {
                 return;
             }
 
-            // 엑셀 데이터 준비
             const excelData = [];
             const headers = ['구분1', '구분2', '과제명', '담당자', '진행내용', '시작일', '종료일', '비고', '진행상황', '진행률'];
             excelData.push(headers);
@@ -1298,17 +1790,13 @@ function init() {
                 });
             });
 
-            // SheetJS를 사용하여 엑셀 파일 생성
             const ws = XLSX.utils.aoa_to_sheet(excelData);
-            
-            // 열 너비 설정
             const colWidths = [12, 12, 20, 12, 20, 12, 12, 15, 12, 8];
             ws['!cols'] = colWidths.map(w => ({ wch: w }));
             
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, '과제목록');
             
-            // 파일명 설정 (날짜 포함)
             const fileName = `${project.name}_${new Date().toISOString().slice(0, 10)}.xlsx`;
             XLSX.writeFile(wb, fileName);
             
@@ -1316,15 +1804,10 @@ function init() {
         });
 
         function saveToFirebase() {
-            if (!currentUserId) {
-                console.error('사용자 ID가 설정되지 않았습니다');
-                return;
-            }
-            const userRef = getDatabase().ref(`shared/projects`);
+            if (!currentUserId) return;
+            const userRef = getDatabase().ref('shared/projects');
             userRef.set(projects)
-                .then(() => {
-                    console.log('✅ Firebase에 저장 완료');
-                })
+                .then(() => console.log('✅ Firebase에 저장 완료'))
                 .catch((error) => {
                     console.error('❌ Firebase 저장 실패:', error);
                     alert('저장에 실패했습니다. 인터넷 연결을 확인하세요.');
@@ -1332,35 +1815,24 @@ function init() {
         }
 
         function loadFromFirebase() {
-            if (!currentUserId) {
-                console.error('사용자 ID가 설정되지 않았습니다');
-                return;
-            }
-            const userRef = getDatabase().ref(`shared/projects`);
+            if (!currentUserId) return;
+            const userRef = getDatabase().ref('shared/projects');
             
-            // 초기 로드
             userRef.once('value')
                 .then((snapshot) => {
                     if (snapshot.exists()) {
                         projects = snapshot.val();
-                        console.log('✅ Firebase에서 로드 완료:', projects.length, '개 프로젝트');
                     } else {
-                        console.log('저장된 프로젝트가 없습니다. 샘플 데이터 추가...');
                         projects = [];
-                        // ✅ 데이터 로드가 완료된 후에만 샘플 데이터 추가
                         addSampleData();
                     }
                     
-                    // 프로젝트 목록 렌더링
-                    console.log('프로젝트 목록 렌더링...');
                     renderProjectList();
                     
-                    // 첫 번째 프로젝트 선택 및 컨텐츠 렌더링
                     if (projects.length > 0) {
                         if (!currentProjectId) {
                             currentProjectId = projects[0].id;
                         }
-                        console.log('선택된 프로젝트:', currentProjectId);
                         renderContent();
                     }
                 })
@@ -1369,14 +1841,11 @@ function init() {
                     alert('데이터 로드에 실패했습니다. 잠시 후 다시 시도하세요.');
                 });
             
-            // 실시간 동기화 (다른 기기에서 변경되면 자동 반영)
             userRef.on('value', (snapshot) => {
                 if (snapshot.exists()) {
                     const remoteProjects = snapshot.val();
-                    // 현재 프로젝트가 있다면 유지하고 목록만 업데이트
                     if (JSON.stringify(projects) !== JSON.stringify(remoteProjects)) {
                         projects = remoteProjects;
-                        console.log('🔄 실시간 동기화됨');
                         renderProjectList();
                         renderContent();
                     }
@@ -1384,9 +1853,20 @@ function init() {
             });
         }
 
-        
-        // 페이지 로드 시 초기화
-        window.addEventListener('load', init);
+        // 페이지 로드 시 세션 확인
+        window.addEventListener('load', function() {
+            // Firebase 준비 후 세션 복구 시도
+            const waitForFirebase = setInterval(() => {
+                if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+                    clearInterval(waitForFirebase);
+                    firebase.auth().onAuthStateChanged((user) => {
+                        if (user) {
+                            checkSession();
+                        }
+                    });
+                }
+            }, 200);
+        });
     </script>
 </body>
 </html>
