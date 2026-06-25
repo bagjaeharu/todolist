@@ -3390,6 +3390,7 @@
         // 기존 saveToFirebase
         // ==========================================
 
+        function saveToFirebase() {
             if (typeof firebase === 'undefined') return;
             const userRef = getDatabase().ref('shared/projects');
             userRef.set(projects)
