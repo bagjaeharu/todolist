@@ -5,7 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>온라인영업팀 To-do List</title>
     <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
+
+    <!-- SheetJS (엑셀) - 다중 CDN 대체 로드 -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script>
+        // 1차 CDN 실패 시 대체 CDN에서 순차 로드
+        (function() {
+            if (typeof XLSX !== 'undefined') {
+                console.log('✅ XLSX 로드 완료 (sheetjs CDN)');
+                return;
+            }
+            const fallbacks = [
+                'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+                'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
+                'https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js'
+            ];
+            let idx = 0;
+            function tryNext() {
+                if (typeof XLSX !== 'undefined') {
+                    console.log('✅ XLSX 로드 완료 (대체 CDN)');
+                    return;
+                }
+                if (idx >= fallbacks.length) {
+                    console.error('❌ XLSX 라이브러리를 모든 CDN에서 로드하지 못했습니다.');
+                    return;
+                }
+                const s = document.createElement('script');
+                s.src = fallbacks[idx++];
+                s.onload = function() { console.log('✅ XLSX 로드 완료:', s.src); };
+                s.onerror = function() { console.warn('⚠️ XLSX 로드 실패, 다음 CDN 시도:', s.src); tryNext(); };
+                document.head.appendChild(s);
+            }
+            tryNext();
+        })();
+    </script>
     
     <!-- Firebase SDK (Google 정식 compat 버전) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
@@ -1928,28 +1961,63 @@
 
         // 양식 다운로드
         function downloadTemplate() {
-            const data = [
-                IMPORT_HEADERS,
-                // 예시 행 (사용자가 참고 후 삭제)
-                ['계약', '택배/물류', '계약기간 연장', '홍길동', '진행 내용을 입력하세요', '2026-07-01', '2026-07-31', '비고 메모', '진행중', 50],
-                ['업무환경', 'PS&M', '사무실 이전', '김철수', '이전 협의 진행', '', '', '', '예정', 0]
-            ];
+            // XLSX 라이브러리 로드 확인
+            if (typeof XLSX === 'undefined') {
+                alert('엑셀 라이브러리가 아직 로드되지 않았습니다. 잠시 후 다시 시도해 주세요.');
+                return;
+            }
 
-            const ws = XLSX.utils.aoa_to_sheet(data);
-            ws['!cols'] = [
-                { wch: 12 }, { wch: 12 }, { wch: 22 }, { wch: 12 }, { wch: 28 },
-                { wch: 12 }, { wch: 12 }, { wch: 16 }, { wch: 10 }, { wch: 8 }
-            ];
+            try {
+                const data = [
+                    IMPORT_HEADERS,
+                    // 예시 행 (사용자가 참고 후 삭제)
+                    ['계약', '택배/물류', '계약기간 연장', '홍길동', '진행 내용을 입력하세요', '2026-07-01', '2026-07-31', '비고 메모', '진행중', 50],
+                    ['업무환경', 'PS&M', '사무실 이전', '김철수', '이전 협의 진행', '', '', '', '예정', 0]
+                ];
 
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, '과제양식');
-            XLSX.writeFile(wb, '과제_업로드_양식.xlsx');
+                const ws = XLSX.utils.aoa_to_sheet(data);
+                ws['!cols'] = [
+                    { wch: 12 }, { wch: 12 }, { wch: 22 }, { wch: 12 }, { wch: 28 },
+                    { wch: 12 }, { wch: 12 }, { wch: 16 }, { wch: 10 }, { wch: 8 }
+                ];
+
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, '과제양식');
+
+                // Blob 방식으로 다운로드 (모든 브라우저 호환)
+                const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                const blob = new Blob([wbout], { type: 'application/octet-stream' });
+                downloadBlob(blob, '과제_업로드_양식.xlsx');
+            } catch (err) {
+                console.error('양식 다운로드 오류:', err);
+                alert('양식 다운로드 중 오류가 발생했습니다: ' + err.message);
+            }
+        }
+
+        // Blob 다운로드 헬퍼 (브라우저 호환)
+        function downloadBlob(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(function() {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 200);
         }
 
         // 파일 선택 → 파싱 → 미리보기
         function handleFileSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
+
+            if (typeof XLSX === 'undefined') {
+                showImportMsg('엑셀 라이브러리가 아직 로드되지 않았습니다. 잠시 후 다시 시도해 주세요.', 'error');
+                return;
+            }
 
             document.getElementById('importMsg').className = 'auth-msg';
             document.getElementById('importMsg').textContent = '';
@@ -2272,6 +2340,12 @@
 
         document.getElementById('exportForm').addEventListener('submit', function(e) {
             e.preventDefault();
+
+            if (typeof XLSX === 'undefined') {
+                alert('엑셀 라이브러리가 아직 로드되지 않았습니다. 잠시 후 다시 시도해 주세요.');
+                return;
+            }
+
             const projectId = parseInt(document.getElementById('exportProject').value);
             const project = projects.find(p => p.id === projectId);
             
@@ -2309,7 +2383,9 @@
             XLSX.utils.book_append_sheet(wb, ws, '과제목록');
             
             const fileName = `${project.name}_${new Date().toISOString().slice(0, 10)}.xlsx`;
-            XLSX.writeFile(wb, fileName);
+            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            const blob = new Blob([wbout], { type: 'application/octet-stream' });
+            downloadBlob(blob, fileName);
             
             closeModal('exportModal');
         });
