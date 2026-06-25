@@ -1315,20 +1315,11 @@
                     <label for="taskNotes">비고</label>
                     <input type="text" id="taskNotes">
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="taskStatus">진행상황 *</label>
-                        <select id="taskStatus" required>
-                            <option value="예정">예정</option>
-                            <option value="진행중">진행중</option>
-                            <option value="완료">완료</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>진행률</label>
-                        <div style="padding: 10px; background: #f0f9ff; border-radius: 4px; font-size: 0.9em; color: #0369a1; font-weight: 700;">
-                            📊 진행 내용의 진행률에서 자동 계산됩니다
-                        </div>
+                <div class="form-group">
+                    <label>진행상황 · 진행률</label>
+                    <div style="padding: 12px; background: #f0f9ff; border-radius: 6px; font-size: 0.88em; color: #0369a1; line-height: 1.7;">
+                        📊 진행 내용의 진행률에서 자동 계산됩니다<br>
+                        <span style="color: #64748b;">0% → 예정 · 1~99% → 진행중 · 100% → 완료</span>
                     </div>
                 </div>
                 <div class="modal-actions">
@@ -1775,6 +1766,14 @@
             return '#94a3b8';
         }
 
+        // 진행률 기반 자동 상태 계산
+        function calcTaskStatus(task) {
+            const p = calcTaskProgress(task);
+            if (p >= 100) return '완료';
+            if (p > 0) return '진행중';
+            return '예정';
+        }
+
         function initApp() {
             if (typeof firebase === 'undefined') {
                 setTimeout(initApp, 1000);
@@ -1844,8 +1843,8 @@
             document.getElementById('currentProjectName').textContent = project.name;
             
             const tasks = project.tasks || [];
-            const completed = tasks.filter(t => t.status === '완료').length;
-            const inProgress = tasks.filter(t => t.status === '진행중').length;
+            const completed = tasks.filter(t => calcTaskStatus(t) === '완료').length;
+            const inProgress = tasks.filter(t => calcTaskStatus(t) === '진행중').length;
             const avgProgress = tasks.length > 0 ? Math.round(tasks.reduce((sum, t) => sum + calcTaskProgress(t), 0) / tasks.length) : 0;
 
             let html = `
@@ -1870,7 +1869,9 @@
                             <label>진행상황</label>
                             <select id="filterStatus" onchange="applyFilters()">
                                 <option value="">전체</option>
-                                ${[...new Set(tasks.map(t => t.status))].map(s => `<option value="${s}">${s}</option>`).join('')}
+                                <option value="예정">예정</option>
+                                <option value="진행중">진행중</option>
+                                <option value="완료">완료</option>
                             </select>
                         </div>
                         <div class="filter-group">
@@ -1913,7 +1914,7 @@
 
             let filtered = tasks.filter(t => 
                 (!assigneeFilter || t.assignee === assigneeFilter) &&
-                (!statusFilter || t.status === statusFilter) &&
+                (!statusFilter || calcTaskStatus(t) === statusFilter) &&
                 (!category1Filter || t.category1 === category1Filter) &&
                 (!category2Filter || t.category2 === category2Filter)
             );
@@ -1924,6 +1925,7 @@
             filtered.forEach(task => {
                 const progressItems = task.progressItems || [];
                 const taskProgress = calcTaskProgress(task);
+                const taskStatus = calcTaskStatus(task);
                 const isExpanded = expandedTaskIds.has(task.id);
                 const pColor = progressColor(taskProgress);
                 html += `
@@ -1942,7 +1944,7 @@
                                     </div>
                                 </div>
                                 <div class="task-cell">
-                                    <span class="task-status status-${task.status}">${task.status}</span>
+                                    <span class="task-status status-${taskStatus}">${taskStatus}</span>
                                     <div style="font-size:0.78em; color:#64748b; margin-top:2px;">${taskProgress}%</div>
                                 </div>
                             </div>
@@ -2043,6 +2045,7 @@
             const newId = Math.max(...task.progressItems.map(p => p.id), 0) + 1;
             task.progressItems.push({ id: newId, content: '', startDate: '', endDate: '', progress: 0 });
             task.progress = calcTaskProgress(task);
+            task.status = calcTaskStatus(task);
             saveToFirebase();
             applyFilters();
         }
@@ -2052,6 +2055,7 @@
             const task = project.tasks.find(t => t.id === taskId);
             task.progressItems = task.progressItems.filter(p => p.id !== itemId);
             task.progress = calcTaskProgress(task);
+            task.status = calcTaskStatus(task);
             saveToFirebase();
             applyFilters();
         }
@@ -2078,6 +2082,7 @@
             const item = task.progressItems.find(p => p.id === itemId);
             item.progress = value;
             task.progress = calcTaskProgress(task);
+            task.status = calcTaskStatus(task);
             saveToFirebase();
             applyFilters();
         }
@@ -2449,6 +2454,7 @@
                         });
                     });
                     existingTask.progress = calcTaskProgress(existingTask);
+                    existingTask.status = calcTaskStatus(existingTask);
                     mergedCount++;
                 } else {
                     // 신규 과제 생성
@@ -2459,7 +2465,7 @@
                         title: group.title,
                         assignee: group.assignee,
                         notes: group.notes || '',
-                        status: group.status,
+                        status: '예정',
                         progress: 0,
                         progressItems: group.items.map((item, i) => ({
                             id: i + 1,
@@ -2470,6 +2476,7 @@
                         }))
                     };
                     newTask.progress = calcTaskProgress(newTask);
+                    newTask.status = calcTaskStatus(newTask);
                     project.tasks.push(newTask);
                     newCount++;
                 }
@@ -2499,7 +2506,6 @@
             }
             editingTaskId = null;
             document.getElementById('taskForm').reset();
-            document.getElementById('taskStatus').value = '예정';
             document.getElementById('taskModal').classList.add('active');
         }
 
@@ -2513,7 +2519,6 @@
             document.getElementById('taskTitle').value = task.title;
             document.getElementById('taskAssignee').value = task.assignee;
             document.getElementById('taskNotes').value = task.notes || '';
-            document.getElementById('taskStatus').value = task.status;
             
             document.getElementById('taskModal').classList.add('active');
         }
@@ -2705,18 +2710,19 @@
                 category2: document.getElementById('taskCategory2').value,
                 title: document.getElementById('taskTitle').value,
                 assignee: document.getElementById('taskAssignee').value,
-                notes: document.getElementById('taskNotes').value,
-                status: document.getElementById('taskStatus').value
+                notes: document.getElementById('taskNotes').value
             };
 
             if (editingTaskId) {
                 const task = project.tasks.find(t => t.id === editingTaskId);
                 Object.assign(task, taskData);
                 task.progress = calcTaskProgress(task);
+                task.status = calcTaskStatus(task);
             } else {
                 const newTask = {
                     id: Date.now(),
                     ...taskData,
+                    status: '예정',
                     progress: 0,
                     progressItems: [{ id: 1, content: '', startDate: '', endDate: '', progress: 0 }]
                 };
@@ -2748,6 +2754,7 @@
             excelData.push(headers);
             
             project.tasks.forEach(task => {
+                const taskStatus = calcTaskStatus(task);
                 (task.progressItems || []).forEach(item => {
                     excelData.push([
                         task.category1,
@@ -2758,7 +2765,7 @@
                         item.startDate || '',
                         item.endDate || '',
                         task.notes || '',
-                        task.status,
+                        taskStatus,
                         item.progress || 0
                     ]);
                 });
