@@ -8,9 +8,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
     
     <!-- Firebase SDK (Google 정식 compat 버전) -->
-    <script src="https://www.gstatic.com/firebaseapp/10.12.4/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebaseapp/10.12.4/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebaseapp/10.12.4/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-database-compat.js"></script>
     
     <!-- Firebase 초기화 -->
     <script>
@@ -847,22 +847,12 @@
                 if (user) {
                     currentUserId = user.uid;
                     console.log('✅ 현재 사용자 ID:', currentUserId);
+                    
+                    // loadFromFirebase()에서 데이터 로드가 완료되면 자동으로 처리됨
                     loadFromFirebase();
                     
-                    if (projects.length === 0) {
-                        console.log('샘플 데이터 추가...');
-                        addSampleData();
-                    }
-                    
-                    console.log('프로젝트 목록 렌더링...');
-                    renderProjectList();
+                    console.log('색상 팔레트 설정...');
                     setupColorPalettes();
-                    
-                    if (projects.length > 0) {
-                        currentProjectId = projects[0].id;
-                        console.log('선택된 프로젝트:', currentProjectId);
-                        renderContent();
-                    }
                 } else {
                     console.error('❌ 사용자 인증 실패');
                 }
@@ -1347,13 +1337,24 @@
                 .then((snapshot) => {
                     if (snapshot.exists()) {
                         projects = snapshot.val();
-                        console.log('✅ Firebase에서 로드 완료:', projects.length);
+                        console.log('✅ Firebase에서 로드 완료:', projects.length, '개 프로젝트');
                     } else {
-                        console.log('저장된 프로젝트가 없습니다');
+                        console.log('저장된 프로젝트가 없습니다. 샘플 데이터 추가...');
                         projects = [];
+                        // ✅ 데이터 로드가 완료된 후에만 샘플 데이터 추가
+                        addSampleData();
                     }
+                    
+                    // 프로젝트 목록 렌더링
+                    console.log('프로젝트 목록 렌더링...');
                     renderProjectList();
-                    if (currentProjectId) {
+                    
+                    // 첫 번째 프로젝트 선택 및 컨텐츠 렌더링
+                    if (projects.length > 0) {
+                        if (!currentProjectId) {
+                            currentProjectId = projects[0].id;
+                        }
+                        console.log('선택된 프로젝트:', currentProjectId);
                         renderContent();
                     }
                 })
