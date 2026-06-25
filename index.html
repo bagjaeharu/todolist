@@ -1241,6 +1241,33 @@
         </div>
     </div>
 
+    <!-- Move/Copy Modal -->
+    <div class="modal" id="moveCopyModal">
+        <div class="modal-content">
+            <div class="modal-header" id="moveCopyTitle">과제 이동/복사</div>
+
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 18px;">
+                <div style="font-size: 0.85em; color: #64748b; margin-bottom: 4px;">대상 과제</div>
+                <div id="moveCopyTaskName" style="font-weight: 700; color: #1f2937;"></div>
+                <div id="moveCopyFromProject" style="font-size: 0.85em; color: #64748b; margin-top: 4px;"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="moveCopyTarget" id="moveCopyTargetLabel">이동할 프로젝트 선택 *</label>
+                <select id="moveCopyTarget" required>
+                    <option value="">프로젝트를 선택하세요</option>
+                </select>
+            </div>
+
+            <div id="moveCopyMsg" class="auth-msg" style="margin-bottom: 16px;"></div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('moveCopyModal')">취소</button>
+                <button type="button" class="btn btn-primary" id="moveCopyConfirmBtn" onclick="confirmMoveCopy()">확인</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // ==========================================
         // 인증 시스템
@@ -1828,6 +1855,8 @@
 
                             <div style="border-top: 1px solid #e2e8f0; margin-top: 15px; padding-top: 15px;">
                                 <button type="button" class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); editTask(${task.id})">✏️ 편집</button>
+                                <button type="button" class="btn btn-sm btn-primary" onclick="event.stopPropagation(); openMoveCopyModal(${task.id}, 'move')">📁 이동</button>
+                                <button type="button" class="btn btn-sm btn-search" onclick="event.stopPropagation(); openMoveCopyModal(${task.id}, 'copy')">📋 복사</button>
                                 <button type="button" class="btn btn-sm btn-danger" onclick="event.stopPropagation(); deleteTask(${task.id})">🗑️ 삭제</button>
                             </div>
                         </div>
@@ -2246,6 +2275,115 @@
             project.tasks = project.tasks.filter(t => t.id !== taskId);
             saveToFirebase();
             applyFilters();
+        }
+
+        // ==========================================
+        // 과제 이동/복사
+        // ==========================================
+        let moveCopyTaskId = null;
+        let moveCopyMode = null; // 'move' | 'copy'
+
+        function openMoveCopyModal(taskId, mode) {
+            moveCopyTaskId = taskId;
+            moveCopyMode = mode;
+
+            const project = projects.find(p => p.id === currentProjectId);
+            if (!project) return;
+            const task = (project.tasks || []).find(t => t.id === taskId);
+            if (!task) return;
+
+            // 제목/라벨/버튼 텍스트 설정
+            const isMove = mode === 'move';
+            document.getElementById('moveCopyTitle').textContent = isMove ? '📁 과제 이동' : '📋 과제 복사';
+            document.getElementById('moveCopyTargetLabel').textContent = (isMove ? '이동할' : '복사할') + ' 프로젝트 선택 *';
+            document.getElementById('moveCopyConfirmBtn').textContent = isMove ? '이동' : '복사';
+            document.getElementById('moveCopyConfirmBtn').className = 'btn ' + (isMove ? 'btn-primary' : 'btn-search');
+
+            // 대상 과제 정보
+            document.getElementById('moveCopyTaskName').textContent = task.title || '(제목 없음)';
+            document.getElementById('moveCopyFromProject').textContent = '현재 위치: ' + project.name;
+
+            // 대상 프로젝트 드롭다운 (현재 프로젝트 제외)
+            const select = document.getElementById('moveCopyTarget');
+            select.innerHTML = '<option value="">프로젝트를 선택하세요</option>';
+            projects.forEach(p => {
+                if (p.id === currentProjectId) return; // 같은 프로젝트는 제외
+                const option = document.createElement('option');
+                option.value = p.id;
+                option.textContent = p.name;
+                select.appendChild(option);
+            });
+
+            // 다른 프로젝트가 없는 경우 안내
+            const msgEl = document.getElementById('moveCopyMsg');
+            if (select.options.length <= 1) {
+                msgEl.className = 'auth-msg info';
+                msgEl.textContent = '이동/복사할 다른 프로젝트가 없습니다. 먼저 프로젝트를 생성해 주세요.';
+                document.getElementById('moveCopyConfirmBtn').disabled = true;
+            } else {
+                msgEl.className = 'auth-msg';
+                msgEl.textContent = '';
+                document.getElementById('moveCopyConfirmBtn').disabled = false;
+            }
+
+            document.getElementById('moveCopyModal').classList.add('active');
+        }
+
+        function confirmMoveCopy() {
+            const targetId = parseInt(document.getElementById('moveCopyTarget').value);
+            const msgEl = document.getElementById('moveCopyMsg');
+
+            if (!targetId) {
+                msgEl.className = 'auth-msg error';
+                msgEl.textContent = '대상 프로젝트를 선택해 주세요.';
+                return;
+            }
+
+            const sourceProject = projects.find(p => p.id === currentProjectId);
+            const targetProject = projects.find(p => p.id === targetId);
+            if (!sourceProject || !targetProject) {
+                msgEl.className = 'auth-msg error';
+                msgEl.textContent = '프로젝트를 찾을 수 없습니다.';
+                return;
+            }
+
+            const task = (sourceProject.tasks || []).find(t => t.id === moveCopyTaskId);
+            if (!task) {
+                msgEl.className = 'auth-msg error';
+                msgEl.textContent = '과제를 찾을 수 없습니다.';
+                return;
+            }
+
+            if (!targetProject.tasks) targetProject.tasks = [];
+
+            if (moveCopyMode === 'copy') {
+                // 깊은 복사 + 새 ID 부여
+                const cloned = JSON.parse(JSON.stringify(task));
+                cloned.id = Date.now();
+                if (Array.isArray(cloned.progressItems)) {
+                    cloned.progressItems = cloned.progressItems.map((item, i) => ({ ...item, id: i + 1 }));
+                }
+                targetProject.tasks.push(cloned);
+            } else {
+                // 이동: 원본 제거 후 대상에 추가
+                targetProject.tasks.push(task);
+                sourceProject.tasks = sourceProject.tasks.filter(t => t.id !== moveCopyTaskId);
+            }
+
+            saveToFirebase();
+
+            const actionWord = moveCopyMode === 'copy' ? '복사' : '이동';
+            const taskTitle = task.title || '과제';
+            closeModal('moveCopyModal');
+
+            // 이동인 경우 현재 화면 갱신, 복사인 경우 현재 유지
+            renderProjectList();
+            renderContent();
+
+            alert('"' + taskTitle + '" 과제를 "' + targetProject.name + '" 프로젝트로 ' + actionWord + '했습니다.');
+
+            moveCopyTaskId = null;
+            moveCopyMode = null;
         }
 
         function editCurrentProject() {
