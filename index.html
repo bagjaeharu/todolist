@@ -1320,7 +1320,7 @@ function init() {
                 console.error('사용자 ID가 설정되지 않았습니다');
                 return;
             }
-            const userRef = getDatabase().ref(`users/${currentUserId}/projects`);
+            const userRef = getDatabase().ref(`shared/projects`);
             userRef.set(projects)
                 .then(() => {
                     console.log('✅ Firebase에 저장 완료');
@@ -1336,7 +1336,7 @@ function init() {
                 console.error('사용자 ID가 설정되지 않았습니다');
                 return;
             }
-            const userRef = getDatabase().ref(`users/${currentUserId}/projects`);
+            const userRef = getDatabase().ref(`shared/projects`);
             
             // 초기 로드
             userRef.once('value')
