@@ -717,21 +717,60 @@
         .stat-card h4 { color: #64748b; font-size: 0.85em; text-transform: uppercase; margin-bottom: 8px; font-weight: 700; }
         .stat-card .number { font-size: 2em; font-weight: 700; color: #3b82f6; }
 
-        .task-row {
-            padding: 12px 15px;
+        .task-wrapper {
             border: 1px solid #e2e8f0;
             margin-bottom: 12px;
-            background: white;
             border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: grid;
-            grid-template-columns: 120px 150px 300px 100px;
-            gap: 10px;
-            align-items: center;
+            background: white;
+            transition: border-color 0.2s;
         }
 
-        .task-row:hover { background: #f8fafc; border-color: #3b82f6; }
+        .task-wrapper:hover { border-color: #3b82f6; }
+
+        .task-wrapper.expanded { border-color: #3b82f6; }
+
+        .task-row-header {
+            display: flex;
+            align-items: center;
+            gap: 0;
+        }
+
+        .task-toggle-btn {
+            width: 42px;
+            min-width: 42px;
+            height: 100%;
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            background: #f8fafc;
+            border: none;
+            border-right: 1px solid #e2e8f0;
+            border-radius: 6px 0 0 6px;
+            font-size: 0.8em;
+            color: #64748b;
+            transition: all 0.2s;
+        }
+
+        .task-toggle-btn:hover { background: #dbeafe; color: #2563eb; }
+
+        .task-wrapper.expanded .task-toggle-btn {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+
+        .task-toggle-btn .toggle-icon { transition: transform 0.3s; display: inline-block; }
+        .task-wrapper.expanded .task-toggle-btn .toggle-icon { transform: rotate(180deg); }
+
+        .task-row-content {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 120px 150px 1fr 100px;
+            gap: 10px;
+            align-items: center;
+            padding: 12px 15px;
+        }
 
         .task-cell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9em; }
 
@@ -752,17 +791,11 @@
             display: none;
             background: #f8fafc;
             padding: 20px;
-            border: 1px solid #e2e8f0;
-            border-top: none;
-            margin: -1px 0 12px 0;
+            border-top: 1px solid #e2e8f0;
             border-radius: 0 0 6px 6px;
-            grid-column: 1 / -1;
         }
 
         .task-details.show { display: block; }
-
-        .expand-icon { display: inline-block; margin-right: 8px; transition: transform 0.3s; }
-        .task-row.expanded .expand-icon { transform: rotate(180deg); }
 
         .progress-item {
             background: white;
@@ -771,6 +804,69 @@
             margin-bottom: 15px;
             border: 1px solid #e2e8f0;
             border-left: 3px solid #3b82f6;
+        }
+
+        .progress-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .progress-item-progress {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            padding: 8px 12px;
+            background: #f0f9ff;
+            border-radius: 6px;
+        }
+
+        .progress-item-progress label {
+            font-size: 0.82em;
+            font-weight: 700;
+            color: #0369a1;
+            white-space: nowrap;
+        }
+
+        .progress-item-progress .progress-bar-wrap {
+            flex: 1;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-item-progress .progress-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s, background 0.3s;
+        }
+
+        .progress-item-progress select {
+            width: 72px;
+            padding: 4px 6px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-family: 'Nanum Gothic', sans-serif;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .task-progress-bar-wrap {
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .task-progress-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.3s, background 0.3s;
         }
 
         .progress-item-content {
@@ -939,7 +1035,7 @@
 
         @media (max-width: 768px) {
             .main-content { grid-template-columns: 1fr; }
-            .task-row { grid-template-columns: 80px 80px 150px 80px; }
+            .task-row-content { grid-template-columns: 80px 80px 1fr 80px; }
             .stats-bar { grid-template-columns: repeat(2, 1fr); }
             header h1 { font-size: 1.5em; }
             .project-header h2 { font-size: 1.3em; }
@@ -1229,8 +1325,10 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="taskProgress">진행률 (%)</label>
-                        <input type="number" id="taskProgress" min="0" max="100" value="0">
+                        <label>진행률</label>
+                        <div style="padding: 10px; background: #f0f9ff; border-radius: 4px; font-size: 0.9em; color: #0369a1; font-weight: 700;">
+                            📊 진행 내용의 진행률에서 자동 계산됩니다
+                        </div>
                     </div>
                 </div>
                 <div class="modal-actions">
@@ -1655,9 +1753,26 @@
         let currentProjectId = null;
         let editingTaskId = null;
         let editingProjectId = null;
+        let expandedTaskIds = new Set();
 
         function getDatabase() {
             return firebase.database();
+        }
+
+        // 과제 진행률 자동 계산 (progressItems의 progress 평균)
+        function calcTaskProgress(task) {
+            const items = task.progressItems || [];
+            if (items.length === 0) return 0;
+            const sum = items.reduce((s, item) => s + (item.progress || 0), 0);
+            return Math.round(sum / items.length);
+        }
+
+        // 진행률에 따른 색상
+        function progressColor(p) {
+            if (p >= 100) return '#16a34a';
+            if (p >= 70) return '#0891b2';
+            if (p >= 40) return '#eab308';
+            return '#94a3b8';
         }
 
         function initApp() {
@@ -1678,10 +1793,10 @@
                     name: '(1) 물류',
                     color: '#2563eb',
                     tasks: [
-                        { id: now + 1001, category1: '계약', category2: '택배/물류', title: '계약기간 일괄 연장', assignee: '영업팀', progressItems: [{ id: 1, content: '택배/물류/부자재 계약기간 일괄 연장', startDate: '', endDate: '' }], notes: '', status: '완료', progress: 100 },
-                        { id: now + 1002, category1: '계약', category2: '택배/물류', title: '택배계약 견적서 업데이트', assignee: '박재용', progressItems: [{ id: 1, content: '택배계약 + 물류견적서 업데이트', startDate: '', endDate: '' }], notes: '', status: '진행중', progress: 70 },
-                        { id: now + 1003, category1: '업무환경', category2: 'CJ대한통운', title: '업무공간 실사', assignee: '박재용', progressItems: [{ id: 1, content: '업무공간 실사 진행', startDate: '2026-06-16', endDate: '2026-06-16' }], notes: '', status: '완료', progress: 100 },
-                        { id: now + 1004, category1: '업무환경', category2: 'PS&M', title: '군포 망구축 공사', assignee: '박재용', progressItems: [{ id: 1, content: '군포 망구축 공사 품의', startDate: '', endDate: '' }], notes: '', status: '진행중', progress: 60 }
+                        { id: now + 1001, category1: '계약', category2: '택배/물류', title: '계약기간 일괄 연장', assignee: '영업팀', progressItems: [{ id: 1, content: '택배/물류/부자재 계약기간 일괄 연장', startDate: '', endDate: '', progress: 100 }], notes: '', status: '완료', progress: 100 },
+                        { id: now + 1002, category1: '계약', category2: '택배/물류', title: '택배계약 견적서 업데이트', assignee: '박재용', progressItems: [{ id: 1, content: '택배계약 + 물류견적서 업데이트', startDate: '', endDate: '', progress: 70 }], notes: '', status: '진행중', progress: 70 },
+                        { id: now + 1003, category1: '업무환경', category2: 'CJ대한통운', title: '업무공간 실사', assignee: '박재용', progressItems: [{ id: 1, content: '업무공간 실사 진행', startDate: '2026-06-16', endDate: '2026-06-16', progress: 100 }], notes: '', status: '완료', progress: 100 },
+                        { id: now + 1004, category1: '업무환경', category2: 'PS&M', title: '군포 망구축 공사', assignee: '박재용', progressItems: [{ id: 1, content: '군포 망구축 공사 품의', startDate: '', endDate: '', progress: 60 }], notes: '', status: '진행중', progress: 60 }
                     ]
                 },
                 {
@@ -1689,8 +1804,8 @@
                     name: '(2) 개통',
                     color: '#0891b2',
                     tasks: [
-                        { id: now + 2001, category1: '계약', category2: '연장', title: '현계약 종료일 이전 연장', assignee: '영업팀', progressItems: [{ id: 1, content: '연장 계약 진행', startDate: '', endDate: '' }], notes: '', status: '예정', progress: 0 },
-                        { id: now + 2002, category1: '업무환경', category2: '공간확보', title: '1층 공간 부래당 확인', assignee: '박재용', progressItems: [{ id: 1, content: '공간 확인 및 협의', startDate: '', endDate: '' }], notes: '', status: '진행중', progress: 70 }
+                        { id: now + 2001, category1: '계약', category2: '연장', title: '현계약 종료일 이전 연장', assignee: '영업팀', progressItems: [{ id: 1, content: '연장 계약 진행', startDate: '', endDate: '', progress: 0 }], notes: '', status: '예정', progress: 0 },
+                        { id: now + 2002, category1: '업무환경', category2: '공간확보', title: '1층 공간 부래당 확인', assignee: '박재용', progressItems: [{ id: 1, content: '공간 확인 및 협의', startDate: '', endDate: '', progress: 70 }], notes: '', status: '진행중', progress: 70 }
                     ]
                 },
                 {
@@ -1698,7 +1813,7 @@
                     name: '(3) 상담/라이브챗',
                     color: '#0369a1',
                     tasks: [
-                        { id: now + 3001, category1: '계약', category2: '연장', title: '1년 연장 계약', assignee: '영업팀', progressItems: [{ id: 1, content: '연장 계약 진행', startDate: '', endDate: '' }], notes: '', status: '예정', progress: 0 }
+                        { id: now + 3001, category1: '계약', category2: '연장', title: '1년 연장 계약', assignee: '영업팀', progressItems: [{ id: 1, content: '연장 계약 진행', startDate: '', endDate: '', progress: 0 }], notes: '', status: '예정', progress: 0 }
                     ]
                 }
             ];
@@ -1731,7 +1846,7 @@
             const tasks = project.tasks || [];
             const completed = tasks.filter(t => t.status === '완료').length;
             const inProgress = tasks.filter(t => t.status === '진행중').length;
-            const avgProgress = tasks.length > 0 ? Math.round(tasks.reduce((sum, t) => sum + (t.progress || 0), 0) / tasks.length) : 0;
+            const avgProgress = tasks.length > 0 ? Math.round(tasks.reduce((sum, t) => sum + calcTaskProgress(t), 0) / tasks.length) : 0;
 
             let html = `
                 <div class="stats-bar">
@@ -1808,56 +1923,86 @@
             let html = '';
             filtered.forEach(task => {
                 const progressItems = task.progressItems || [];
+                const taskProgress = calcTaskProgress(task);
+                const isExpanded = expandedTaskIds.has(task.id);
+                const pColor = progressColor(taskProgress);
                 html += `
-                    <div class="task-row" onclick="toggleExpand(this)">
-                        <div class="task-cell"><span class="expand-icon">▼</span>${task.category1}</div>
-                        <div class="task-cell">${task.category2}</div>
-                        <div class="task-cell"><strong>${task.title}</strong></div>
-                        <div class="task-cell"><span class="task-status status-${task.status}">${task.status}</span></div>
-                        <div class="task-details">
+                    <div class="task-wrapper ${isExpanded ? 'expanded' : ''}" id="taskWrapper_${task.id}">
+                        <div class="task-row-header">
+                            <button type="button" class="task-toggle-btn" onclick="toggleExpand(${task.id})">
+                                <span class="toggle-icon">▼</span>
+                            </button>
+                            <div class="task-row-content">
+                                <div class="task-cell">${task.category1}</div>
+                                <div class="task-cell">${task.category2}</div>
+                                <div class="task-cell">
+                                    <strong>${task.title}</strong>
+                                    <div class="task-progress-bar-wrap">
+                                        <div class="task-progress-bar-fill" style="width:${taskProgress}%; background:${pColor};"></div>
+                                    </div>
+                                </div>
+                                <div class="task-cell">
+                                    <span class="task-status status-${task.status}">${task.status}</span>
+                                    <div style="font-size:0.78em; color:#64748b; margin-top:2px;">${taskProgress}%</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="task-details ${isExpanded ? 'show' : ''}">
                             <div class="task-summary">
                                 <div class="task-summary-item">
                                     <div class="task-summary-label">담당자</div>
                                     <div class="task-summary-value">${task.assignee}</div>
                                 </div>
                                 <div class="task-summary-item">
-                                    <div class="task-summary-label">진행률</div>
-                                    <div class="task-summary-value">${task.progress}%</div>
+                                    <div class="task-summary-label">진행률 (자동계산)</div>
+                                    <div class="task-summary-value" style="font-weight:700; color:${pColor};">${taskProgress}%</div>
                                 </div>
                             </div>
 
                             <h4 style="font-weight: 700; margin-bottom: 12px; color: #1f2937;">📝 진행 내용</h4>
-                            ${progressItems.map((item, idx) => `
+                            ${progressItems.map((item, idx) => {
+                                const itemProg = item.progress || 0;
+                                const itemColor = progressColor(itemProg);
+                                return `
                                 <div class="progress-item">
-                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                    <div class="progress-item-header">
                                         <div style="font-weight: 700; color: #3b82f6;">항목 #${idx + 1}</div>
-                                        <button type="button" class="btn btn-sm btn-danger" onclick="event.stopPropagation(); deleteProgressItem(${task.id}, ${item.id})">🗑️ 삭제</button>
+                                        <button type="button" class="btn btn-sm btn-danger" onclick="deleteProgressItem(${task.id}, ${item.id})">🗑️ 삭제</button>
+                                    </div>
+                                    <div class="progress-item-progress">
+                                        <label>진행률</label>
+                                        <div class="progress-bar-wrap">
+                                            <div class="progress-bar-fill" style="width:${itemProg}%; background:${itemColor};"></div>
+                                        </div>
+                                        <select onchange="updateProgressItemProgress(${task.id}, ${item.id}, parseInt(this.value))">
+                                            ${[0,10,20,30,40,50,60,70,80,90,100].map(v => `<option value="${v}" ${itemProg === v ? 'selected' : ''}>${v}%</option>`).join('')}
+                                        </select>
                                     </div>
                                     <div style="margin-bottom: 12px;">
                                         <label style="font-size: 0.85em; font-weight: 700; color: #64748b; display: block; margin-bottom: 4px;">진행 내용</label>
-                                        <textarea style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 4px; font-family: 'Nanum Gothic', sans-serif; min-height: 60px;" onclick="event.stopPropagation()" onchange="updateProgressContent(${task.id}, ${item.id}, this.value)" placeholder="진행된 내용을 입력하세요...">${item.content}</textarea>
+                                        <textarea style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 4px; font-family: 'Nanum Gothic', sans-serif; min-height: 60px;" onchange="updateProgressContent(${task.id}, ${item.id}, this.value)" placeholder="진행된 내용을 입력하세요...">${item.content}</textarea>
                                     </div>
                                     <div class="progress-item-dates">
                                         <div class="progress-item-date">
                                             <label>시작일</label>
-                                            <input type="date" value="${item.startDate}" onclick="event.stopPropagation()" onchange="updateProgressDate(${task.id}, ${item.id}, 'startDate', this.value)" style="border: 1px solid #cbd5e1;">
+                                            <input type="date" value="${item.startDate}" onchange="updateProgressDate(${task.id}, ${item.id}, 'startDate', this.value)" style="border: 1px solid #cbd5e1;">
                                         </div>
                                         <div class="progress-item-date">
                                             <label>종료일</label>
-                                            <input type="date" value="${item.endDate}" onclick="event.stopPropagation()" onchange="updateProgressDate(${task.id}, ${item.id}, 'endDate', this.value)" style="border: 1px solid #cbd5e1;">
+                                            <input type="date" value="${item.endDate}" onchange="updateProgressDate(${task.id}, ${item.id}, 'endDate', this.value)" style="border: 1px solid #cbd5e1;">
                                         </div>
                                     </div>
                                 </div>
-                            `).join('')}
-                            <button type="button" class="add-progress-btn" onclick="event.stopPropagation(); addProgressItem(${task.id})">➕ 진행 내용 추가</button>
+                            `}).join('')}
+                            <button type="button" class="add-progress-btn" onclick="addProgressItem(${task.id})">➕ 진행 내용 추가</button>
 
                             ${task.notes ? `<div style="margin-top: 20px;"><h4 style="font-weight: 700; color: #1f2937;">📌 비고</h4><div style="padding: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px;">${task.notes}</div></div>` : ''}
 
                             <div style="border-top: 1px solid #e2e8f0; margin-top: 15px; padding-top: 15px;">
-                                <button type="button" class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); editTask(${task.id})">✏️ 편집</button>
-                                <button type="button" class="btn btn-sm btn-primary" onclick="event.stopPropagation(); openMoveCopyModal(${task.id}, 'move')">📁 이동</button>
-                                <button type="button" class="btn btn-sm btn-search" onclick="event.stopPropagation(); openMoveCopyModal(${task.id}, 'copy')">📋 복사</button>
-                                <button type="button" class="btn btn-sm btn-danger" onclick="event.stopPropagation(); deleteTask(${task.id})">🗑️ 삭제</button>
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="editTask(${task.id})">✏️ 편집</button>
+                                <button type="button" class="btn btn-sm btn-primary" onclick="openMoveCopyModal(${task.id}, 'move')">📁 이동</button>
+                                <button type="button" class="btn btn-sm btn-search" onclick="openMoveCopyModal(${task.id}, 'copy')">📋 복사</button>
+                                <button type="button" class="btn btn-sm btn-danger" onclick="deleteTask(${task.id})">🗑️ 삭제</button>
                             </div>
                         </div>
                     </div>
@@ -1871,17 +2016,17 @@
             document.getElementById('taskList').innerHTML = html;
         }
 
-        function toggleExpand(element) {
-            const details = element.querySelector('.task-details');
-            const allDetails = document.querySelectorAll('.task-details');
-            allDetails.forEach(d => {
-                if (d !== details) {
-                    d.classList.remove('show');
-                    d.parentElement.classList.remove('expanded');
-                }
-            });
+        function toggleExpand(taskId) {
+            if (expandedTaskIds.has(taskId)) {
+                expandedTaskIds.delete(taskId);
+            } else {
+                expandedTaskIds.add(taskId);
+            }
+            const wrapper = document.getElementById('taskWrapper_' + taskId);
+            if (!wrapper) return;
+            const details = wrapper.querySelector('.task-details');
+            wrapper.classList.toggle('expanded');
             details.classList.toggle('show');
-            element.classList.toggle('expanded');
         }
 
         function resetFilters() {
@@ -1896,7 +2041,8 @@
             const project = projects.find(p => p.id === currentProjectId);
             const task = project.tasks.find(t => t.id === taskId);
             const newId = Math.max(...task.progressItems.map(p => p.id), 0) + 1;
-            task.progressItems.push({ id: newId, content: '', startDate: '', endDate: '' });
+            task.progressItems.push({ id: newId, content: '', startDate: '', endDate: '', progress: 0 });
+            task.progress = calcTaskProgress(task);
             saveToFirebase();
             applyFilters();
         }
@@ -1905,6 +2051,7 @@
             const project = projects.find(p => p.id === currentProjectId);
             const task = project.tasks.find(t => t.id === taskId);
             task.progressItems = task.progressItems.filter(p => p.id !== itemId);
+            task.progress = calcTaskProgress(task);
             saveToFirebase();
             applyFilters();
         }
@@ -1922,6 +2069,15 @@
             const task = project.tasks.find(t => t.id === taskId);
             const item = task.progressItems.find(p => p.id === itemId);
             item.content = content;
+            saveToFirebase();
+        }
+
+        function updateProgressItemProgress(taskId, itemId, value) {
+            const project = projects.find(p => p.id === currentProjectId);
+            const task = project.tasks.find(t => t.id === taskId);
+            const item = task.progressItems.find(p => p.id === itemId);
+            item.progress = value;
+            task.progress = calcTaskProgress(task);
             saveToFirebase();
             applyFilters();
         }
@@ -2159,18 +2315,43 @@
             return str; // 변환 실패 시 원본 유지
         }
 
-        // 미리보기 테이블 렌더링
+        // 미리보기 테이블 렌더링 (동일 키 그룹 표시)
         function renderImportPreview(rows) {
             const preview = document.getElementById('importPreview');
             const content = document.getElementById('importPreviewContent');
 
-            const showRows = rows.slice(0, 50); // 최대 50행 미리보기
+            // 그룹핑하여 병합 여부 표시
+            const keyCount = {};
+            rows.forEach(r => {
+                const key = [r.category1, r.category2, r.title, r.assignee].join('|||');
+                keyCount[key] = (keyCount[key] || 0) + 1;
+            });
+
+            // 기존 과제와 매칭 확인
+            const projectId = parseInt(document.getElementById('importProject').value);
+            const project = projectId ? projects.find(p => p.id === projectId) : null;
+            const existingKeys = new Set();
+            if (project && project.tasks) {
+                project.tasks.forEach(t => {
+                    existingKeys.add([t.category1, t.category2, t.title, t.assignee].join('|||'));
+                });
+            }
+
+            const showRows = rows.slice(0, 50);
             let html = '<table class="import-table"><thead><tr>';
-            ['구분1', '구분2', '과제명', '담당자', '진행상황', '진행률'].forEach(h => {
+            ['구분1', '구분2', '과제명', '담당자', '진행상황', '진행률', '병합'].forEach(h => {
                 html += '<th>' + h + '</th>';
             });
             html += '</tr></thead><tbody>';
             showRows.forEach(r => {
+                const key = [r.category1, r.category2, r.title, r.assignee].join('|||');
+                const isMerge = keyCount[key] > 1;
+                const isExisting = existingKeys.has(key);
+                let mergeLabel = '';
+                if (isExisting) mergeLabel = '<span style="color:#0891b2; font-weight:700;">기존 병합</span>';
+                else if (isMerge) mergeLabel = '<span style="color:#2563eb; font-weight:700;">그룹 병합</span>';
+                else mergeLabel = '<span style="color:#6b7280;">신규</span>';
+
                 html += '<tr>' +
                     '<td>' + escapeHtml(r.category1) + '</td>' +
                     '<td>' + escapeHtml(r.category2) + '</td>' +
@@ -2178,6 +2359,7 @@
                     '<td>' + escapeHtml(r.assignee) + '</td>' +
                     '<td>' + escapeHtml(r.status) + '</td>' +
                     '<td>' + r.progress + '%</td>' +
+                    '<td>' + mergeLabel + '</td>' +
                     '</tr>';
             });
             html += '</tbody></table>';
@@ -2188,7 +2370,7 @@
             preview.style.display = 'block';
         }
 
-        // 업로드 확정 → 과제 추가
+        // 업로드 확정 → 과제 추가 (동일 키 병합)
         function confirmImport() {
             const projectId = parseInt(document.getElementById('importProject').value);
             if (!projectId) {
@@ -2208,27 +2390,91 @@
 
             if (!project.tasks) project.tasks = [];
 
-            const baseId = Date.now();
-            parsedImportRows.forEach((row, idx) => {
-                project.tasks.push({
-                    id: baseId + idx,
-                    category1: row.category1,
-                    category2: row.category2,
-                    title: row.title,
-                    assignee: row.assignee,
-                    notes: row.notes,
-                    status: row.status,
-                    progress: row.progress,
-                    progressItems: [{
-                        id: 1,
-                        content: row.content || '',
-                        startDate: row.startDate || '',
-                        endDate: row.endDate || ''
-                    }]
+            // ── 1) 업로드 데이터를 키(구분1|구분2|과제명|담당자) 기준으로 그룹핑 ──
+            const grouped = {};
+            parsedImportRows.forEach(row => {
+                const key = [row.category1, row.category2, row.title, row.assignee].join('|||');
+                if (!grouped[key]) {
+                    grouped[key] = {
+                        category1: row.category1,
+                        category2: row.category2,
+                        title: row.title,
+                        assignee: row.assignee,
+                        notes: row.notes,
+                        status: row.status,
+                        items: []
+                    };
+                }
+                grouped[key].items.push({
+                    content: row.content || '',
+                    startDate: row.startDate || '',
+                    endDate: row.endDate || '',
+                    progress: row.progress || 0
                 });
+                // 노트가 비어있으면 다른 행의 노트로 보충
+                if (!grouped[key].notes && row.notes) grouped[key].notes = row.notes;
+                // 상태는 가장 높은 단계를 적용
+                const statusRank = { '예정': 0, '진행중': 1, '완료': 2 };
+                if ((statusRank[row.status] || 0) > (statusRank[grouped[key].status] || 0)) {
+                    grouped[key].status = row.status;
+                }
             });
 
-            const addedCount = parsedImportRows.length;
+            // ── 2) 기존 과제와 병합 또는 신규 추가 ──
+            let mergedCount = 0;
+            let newCount = 0;
+
+            Object.values(grouped).forEach(group => {
+                // 기존 과제 중 동일 키 찾기
+                const existingTask = project.tasks.find(t =>
+                    t.category1 === group.category1 &&
+                    t.category2 === group.category2 &&
+                    t.title === group.title &&
+                    t.assignee === group.assignee
+                );
+
+                if (existingTask) {
+                    // 기존 과제에 진행내용 추가
+                    if (!existingTask.progressItems) existingTask.progressItems = [];
+                    const maxId = existingTask.progressItems.length > 0
+                        ? Math.max(...existingTask.progressItems.map(p => p.id))
+                        : 0;
+                    group.items.forEach((item, i) => {
+                        existingTask.progressItems.push({
+                            id: maxId + i + 1,
+                            content: item.content,
+                            startDate: item.startDate,
+                            endDate: item.endDate,
+                            progress: item.progress
+                        });
+                    });
+                    existingTask.progress = calcTaskProgress(existingTask);
+                    mergedCount++;
+                } else {
+                    // 신규 과제 생성
+                    const newTask = {
+                        id: Date.now() + newCount,
+                        category1: group.category1,
+                        category2: group.category2,
+                        title: group.title,
+                        assignee: group.assignee,
+                        notes: group.notes || '',
+                        status: group.status,
+                        progress: 0,
+                        progressItems: group.items.map((item, i) => ({
+                            id: i + 1,
+                            content: item.content,
+                            startDate: item.startDate,
+                            endDate: item.endDate,
+                            progress: item.progress
+                        }))
+                    };
+                    newTask.progress = calcTaskProgress(newTask);
+                    project.tasks.push(newTask);
+                    newCount++;
+                }
+            });
+
             saveToFirebase();
 
             // 추가한 프로젝트로 이동 후 화면 갱신
@@ -2237,7 +2483,12 @@
             renderContent();
 
             closeImportModal();
-            alert(addedCount + '개의 과제가 "' + project.name + '" 프로젝트에 추가되었습니다.');
+
+            // 결과 메시지
+            let msg = '';
+            if (newCount > 0) msg += newCount + '개 신규 과제 추가';
+            if (mergedCount > 0) msg += (msg ? ', ' : '') + mergedCount + '개 기존 과제에 진행내용 병합';
+            alert('"' + project.name + '" 프로젝트: ' + msg + ' 완료!');
         }
 
 
@@ -2248,7 +2499,6 @@
             }
             editingTaskId = null;
             document.getElementById('taskForm').reset();
-            document.getElementById('taskProgress').value = 0;
             document.getElementById('taskStatus').value = '예정';
             document.getElementById('taskModal').classList.add('active');
         }
@@ -2264,7 +2514,6 @@
             document.getElementById('taskAssignee').value = task.assignee;
             document.getElementById('taskNotes').value = task.notes || '';
             document.getElementById('taskStatus').value = task.status;
-            document.getElementById('taskProgress').value = task.progress || 0;
             
             document.getElementById('taskModal').classList.add('active');
         }
@@ -2457,19 +2706,21 @@
                 title: document.getElementById('taskTitle').value,
                 assignee: document.getElementById('taskAssignee').value,
                 notes: document.getElementById('taskNotes').value,
-                status: document.getElementById('taskStatus').value,
-                progress: parseInt(document.getElementById('taskProgress').value)
+                status: document.getElementById('taskStatus').value
             };
 
             if (editingTaskId) {
                 const task = project.tasks.find(t => t.id === editingTaskId);
                 Object.assign(task, taskData);
+                task.progress = calcTaskProgress(task);
             } else {
-                project.tasks.push({
+                const newTask = {
                     id: Date.now(),
                     ...taskData,
-                    progressItems: [{ id: 1, content: '', startDate: '', endDate: '' }]
-                });
+                    progress: 0,
+                    progressItems: [{ id: 1, content: '', startDate: '', endDate: '', progress: 0 }]
+                };
+                project.tasks.push(newTask);
             }
             saveToFirebase();
             renderContent();
@@ -2508,7 +2759,7 @@
                         item.endDate || '',
                         task.notes || '',
                         task.status,
-                        task.progress
+                        item.progress || 0
                     ]);
                 });
             });
