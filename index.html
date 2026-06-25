@@ -26,6 +26,14 @@
 
         let firebaseReady = false;
 
+        function enableAuthButtons() {
+            firebaseReady = true;
+            const loginBtn = document.getElementById('loginBtn');
+            if (loginBtn) { loginBtn.disabled = false; loginBtn.textContent = '로그인'; }
+            const regBtn = document.getElementById('registerBtn');
+            if (regBtn) { regBtn.disabled = false; regBtn.textContent = '가입 신청'; }
+        }
+
         function initializeFirebase() {
             if (typeof firebase === 'undefined') {
                 setTimeout(initializeFirebase, 3000);
@@ -37,25 +45,20 @@
             firebase.auth().signInAnonymously()
                 .then(async () => {
                     console.log('✅ Firebase 익명 인증 성공');
-                    await ensureAdminAccount();
-                    firebaseReady = true;
+                    try {
+                        await ensureAdminAccount();
+                    } catch (e) {
+                        console.warn('⚠️ 관리자 계정 자동생성 실패 (DB 규칙 확인 필요):', e.message);
+                    }
+                    enableAuthButtons();
                     console.log('✅ Firebase 준비 완료');
-                    // 로그인 버튼 활성화
-                    const loginBtn = document.getElementById('loginBtn');
-                    if (loginBtn) {
-                        loginBtn.disabled = false;
-                        loginBtn.textContent = '로그인';
-                    }
-                    const regBtn = document.getElementById('registerBtn');
-                    if (regBtn) {
-                        regBtn.disabled = false;
-                        regBtn.textContent = '가입 신청';
-                    }
-                    // 세션 복구 시도
                     checkSession();
                 })
                 .catch((error) => {
                     console.error('❌ Firebase 인증 실패:', error);
+                    // 인증 실패해도 버튼은 활성화 (오류 메시지 표시용)
+                    enableAuthButtons();
+                });
                 });
         }
         setTimeout(initializeFirebase, 100);
@@ -1125,7 +1128,11 @@
                 enterApp();
             } catch (error) {
                 console.error('로그인 오류:', error);
-                showAuthMsg('loginMsg', '로그인 중 오류가 발생했습니다.', 'error');
+                if (error.code === 'PERMISSION_DENIED') {
+                    showAuthMsg('loginMsg', 'Firebase DB 접근 권한이 없습니다. Firebase 콘솔에서 Realtime Database 규칙을 확인하세요.', 'error');
+                } else {
+                    showAuthMsg('loginMsg', '로그인 중 오류가 발생했습니다: ' + error.message, 'error');
+                }
             }
         }
 
