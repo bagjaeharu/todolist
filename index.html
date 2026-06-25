@@ -24,6 +24,8 @@
             appId: "1:718944405362:web:5dbd1f2c3e4911b9f67feb"
         };
 
+        let firebaseReady = false;
+
         function initializeFirebase() {
             if (typeof firebase === 'undefined') {
                 setTimeout(initializeFirebase, 3000);
@@ -33,9 +35,24 @@
                 firebase.initializeApp(firebaseConfig);
             }
             firebase.auth().signInAnonymously()
-                .then(() => {
+                .then(async () => {
                     console.log('✅ Firebase 익명 인증 성공');
-                    ensureAdminAccount();
+                    await ensureAdminAccount();
+                    firebaseReady = true;
+                    console.log('✅ Firebase 준비 완료');
+                    // 로그인 버튼 활성화
+                    const loginBtn = document.getElementById('loginBtn');
+                    if (loginBtn) {
+                        loginBtn.disabled = false;
+                        loginBtn.textContent = '로그인';
+                    }
+                    const regBtn = document.getElementById('registerBtn');
+                    if (regBtn) {
+                        regBtn.disabled = false;
+                        regBtn.textContent = '가입 신청';
+                    }
+                    // 세션 복구 시도
+                    checkSession();
                 })
                 .catch((error) => {
                     console.error('❌ Firebase 인증 실패:', error);
@@ -778,7 +795,7 @@
                         <label for="loginPw">비밀번호</label>
                         <input type="password" id="loginPw" placeholder="비밀번호를 입력하세요" autocomplete="current-password">
                     </div>
-                    <button class="auth-btn" onclick="handleLogin()">로그인</button>
+                    <button class="auth-btn" id="loginBtn" onclick="handleLogin()" disabled>연결 중...</button>
                 </div>
 
                 <!-- 가입 신청 폼 -->
@@ -804,7 +821,7 @@
                         <label for="regName">이름 *</label>
                         <input type="text" id="regName" placeholder="실명을 입력하세요" autocomplete="name">
                     </div>
-                    <button class="auth-btn" onclick="handleRegister()">가입 신청</button>
+                    <button class="auth-btn" id="registerBtn" onclick="handleRegister()" disabled>연결 중...</button>
                 </div>
             </div>
         </div>
@@ -1055,6 +1072,10 @@
 
         // 로그인 처리
         async function handleLogin() {
+            if (!firebaseReady) {
+                showAuthMsg('loginMsg', '서버 연결 중입니다. 잠시만 기다려 주세요.', 'info');
+                return;
+            }
             const id = document.getElementById('loginId').value.trim();
             const pw = document.getElementById('loginPw').value;
 
@@ -1110,6 +1131,10 @@
 
         // 가입 신청 처리
         async function handleRegister() {
+            if (!firebaseReady) {
+                showAuthMsg('registerMsg', '서버 연결 중입니다. 잠시만 기다려 주세요.', 'info');
+                return;
+            }
             const id = document.getElementById('regId').value.trim();
             const pw = document.getElementById('regPw').value;
             const pwConfirm = document.getElementById('regPwConfirm').value;
@@ -1854,19 +1879,7 @@
         }
 
         // 페이지 로드 시 세션 확인
-        window.addEventListener('load', function() {
-            // Firebase 준비 후 세션 복구 시도
-            const waitForFirebase = setInterval(() => {
-                if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
-                    clearInterval(waitForFirebase);
-                    firebase.auth().onAuthStateChanged((user) => {
-                        if (user) {
-                            checkSession();
-                        }
-                    });
-                }
-            }, 200);
-        });
+        // 세션 복구는 initializeFirebase 완료 후 자동 실행됨
     </script>
 </body>
 </html>
