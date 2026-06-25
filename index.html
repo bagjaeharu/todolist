@@ -1125,6 +1125,197 @@
         .task-summary-label { font-weight: 700; color: #6b7280; font-size: 0.8em; }
         .task-summary-value { color: #1f2937; }
 
+        /* ========== 휴가 캘린더 ========== */
+        .vacation-view {
+            padding: 30px;
+        }
+
+        .vacation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .vacation-header h2 {
+            color: #1f2937;
+            font-size: 1.8em;
+            font-weight: 700;
+        }
+
+        .vacation-nav {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: #f8fafc;
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .vacation-nav button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.3em;
+            color: #7c3aed;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .vacation-nav button:hover { background: #ede9fe; }
+
+        .vacation-nav .month-label {
+            font-size: 1.05em;
+            font-weight: 700;
+            color: #1f2937;
+            min-width: 110px;
+            text-align: center;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background: #e2e8f0;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .cal-day-header {
+            background: #f1f5f9;
+            text-align: center;
+            padding: 10px 4px;
+            font-size: 0.82em;
+            font-weight: 700;
+            color: #64748b;
+        }
+
+        .cal-day-header.sun { color: #dc2626; }
+        .cal-day-header.sat { color: #2563eb; }
+
+        .cal-cell {
+            background: white;
+            min-height: 100px;
+            padding: 6px;
+            vertical-align: top;
+            position: relative;
+        }
+
+        .cal-cell.other-month { background: #fafafa; }
+        .cal-cell.today { background: #fdf4ff; }
+
+        .cal-date {
+            font-size: 0.82em;
+            font-weight: 700;
+            color: #374151;
+            margin-bottom: 4px;
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            line-height: 24px;
+            text-align: center;
+            border-radius: 50%;
+        }
+
+        .cal-cell.today .cal-date {
+            background: #7c3aed;
+            color: white;
+        }
+
+        .cal-cell.sunday .cal-date { color: #dc2626; }
+        .cal-cell.saturday .cal-date { color: #2563eb; }
+        .cal-cell.other-month .cal-date { color: #c4c4c4; }
+
+        .vac-chip {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 7px;
+            border-radius: 10px;
+            font-size: 0.74em;
+            font-weight: 700;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: default;
+        }
+
+        .vacation-list-section {
+            margin-top: 4px;
+        }
+
+        .vacation-list-title {
+            font-size: 0.9em;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 12px;
+        }
+
+        .vac-list-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: #faf5ff;
+            border: 1px solid #e9d5ff;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+
+        .vac-list-item .vac-name-badge {
+            font-weight: 700;
+            color: #7c3aed;
+            min-width: 60px;
+        }
+
+        .vac-list-item .vac-type-badge {
+            padding: 2px 10px;
+            background: #7c3aed;
+            color: white;
+            border-radius: 10px;
+            font-size: 0.82em;
+            font-weight: 700;
+        }
+
+        .vac-list-item .vac-dates {
+            color: #4b5563;
+            flex: 1;
+        }
+
+        .vac-list-item .vac-del-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #dc2626;
+            font-size: 1em;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .vac-list-item .vac-del-btn:hover { background: #fee2e2; }
+
+        .vac-empty {
+            text-align: center;
+            color: #94a3b8;
+            padding: 20px;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .cal-cell { min-height: 70px; }
+            .vac-chip { font-size: 0.65em; }
+        }
+
         @media (max-width: 768px) {
             .main-content { grid-template-columns: 1fr; }
             .task-row-content { grid-template-columns: 80px 80px 1fr 80px; }
@@ -1137,7 +1328,6 @@
             .admin-content { width: 95vw; }
             .user-bar { flex-direction: column; gap: 8px; text-align: center; }
         }
-    </style>
 </head>
 <body>
 
@@ -1246,6 +1436,7 @@
                     <ul class="project-list" id="projectList"></ul>
                     <h3>추가 기능</h3>
                     <button class="add-project-btn" onclick="openExportModal()" style="background: #16a34a;">📊 엑셀 추출</button>
+                    <button class="add-project-btn" id="vacationTabBtn" onclick="openVacationView()" style="background: #7c3aed; margin-top: 8px;">🏖️ 휴가 일정</button>
                 </div>
 
                 <div class="content-area">
@@ -1420,6 +1611,36 @@
                     <button type="submit" class="btn btn-primary">저장</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Vacation Add Modal -->
+    <div class="modal" id="vacationModal">
+        <div class="modal-content">
+            <div class="modal-header">🏖️ 휴가 기간 추가</div>
+            <div class="form-group">
+                <label for="vacStartDate">시작일 *</label>
+                <input type="date" id="vacStartDate" required>
+            </div>
+            <div class="form-group">
+                <label for="vacEndDate">종료일 *</label>
+                <input type="date" id="vacEndDate" required>
+            </div>
+            <div class="form-group">
+                <label for="vacType">휴가 유형</label>
+                <select id="vacType">
+                    <option value="연차">연차</option>
+                    <option value="반차(오전)">반차(오전)</option>
+                    <option value="반차(오후)">반차(오후)</option>
+                    <option value="병가">병가</option>
+                    <option value="공가">공가</option>
+                </select>
+            </div>
+            <div id="vacMsg" class="auth-msg" style="margin-bottom: 12px;"></div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('vacationModal')">취소</button>
+                <button type="button" class="btn btn-primary" onclick="confirmAddVacation()" style="background:#7c3aed;">저장</button>
+            </div>
         </div>
     </div>
 
@@ -1874,6 +2095,7 @@
             }
             // 익명 인증 없이 바로 데이터 로드
             loadFromFirebase();
+            loadVacationsFromFirebase();
             setupColorPalettes();
         }
 
@@ -1925,6 +2147,12 @@
 
         function selectProject(projectId) {
             currentProjectId = projectId;
+            // 휴가 뷰에서 돌아오는 경우 헤더 복원 및 버튼 하이라이트 해제
+            const header = document.querySelector('#appWrapper .project-header');
+            if (header) header.style.display = '';
+            if (document.getElementById('vacationTabBtn')) {
+                document.getElementById('vacationTabBtn').style.outline = '';
+            }
             renderProjectList();
             renderContent();
         }
@@ -2143,7 +2371,9 @@
 
         function addProgressItem(taskId) {
             const project = projects.find(p => p.id === currentProjectId);
+            if (!project.tasks) project.tasks = [];
             const task = project.tasks.find(t => t.id === taskId);
+            if (!task.progressItems) task.progressItems = [];
             const newId = Math.max(...task.progressItems.map(p => p.id), 0) + 1;
             task.progressItems.push({ id: newId, content: '', startDate: '', endDate: '', progress: 0, notes: '' });
             task.progress = calcTaskProgress(task);
@@ -2154,6 +2384,7 @@
 
         function deleteProgressItem(taskId, itemId) {
             const project = projects.find(p => p.id === currentProjectId);
+            if (!project.tasks) project.tasks = [];
             const task = project.tasks.find(t => t.id === taskId);
             task.progressItems = task.progressItems.filter(p => p.id !== itemId);
             task.progress = calcTaskProgress(task);
@@ -2164,6 +2395,7 @@
 
         function updateProgressDate(taskId, itemId, field, value) {
             const project = projects.find(p => p.id === currentProjectId);
+            if (!project.tasks) project.tasks = [];
             const task = project.tasks.find(t => t.id === taskId);
             const item = task.progressItems.find(p => p.id === itemId);
             item[field] = value;
@@ -2172,6 +2404,7 @@
 
         function updateProgressContent(taskId, itemId, content) {
             const project = projects.find(p => p.id === currentProjectId);
+            if (!project.tasks) project.tasks = [];
             const task = project.tasks.find(t => t.id === taskId);
             const item = task.progressItems.find(p => p.id === itemId);
             item.content = content;
@@ -2180,6 +2413,7 @@
 
         function updateProgressItemProgress(taskId, itemId, value) {
             const project = projects.find(p => p.id === currentProjectId);
+            if (!project.tasks) project.tasks = [];
             const task = project.tasks.find(t => t.id === taskId);
             const item = task.progressItems.find(p => p.id === itemId);
             item.progress = value;
@@ -2191,6 +2425,7 @@
 
         function updateProgressItemNotes(taskId, itemId, value) {
             const project = projects.find(p => p.id === currentProjectId);
+            if (!project.tasks) project.tasks = [];
             const task = project.tasks.find(t => t.id === taskId);
             const item = task.progressItems.find(p => p.id === itemId);
             item.notes = value;
@@ -2612,6 +2847,7 @@
         function editTask(taskId) {
             editingTaskId = taskId;
             const project = projects.find(p => p.id === currentProjectId);
+            if (!project.tasks) project.tasks = [];
             const task = project.tasks.find(t => t.id === taskId);
             
             document.getElementById('taskCategory1').value = task.category1;
@@ -2626,6 +2862,7 @@
         function deleteTask(taskId) {
             if (!confirm('정말 삭제하시겠습니까?')) return;
             const project = projects.find(p => p.id === currentProjectId);
+            if (!project.tasks) project.tasks = [];
             project.tasks = project.tasks.filter(t => t.id !== taskId);
             saveToFirebase();
             applyFilters();
@@ -2804,6 +3041,7 @@
         document.getElementById('taskForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const project = projects.find(p => p.id === currentProjectId);
+            if (!project.tasks) project.tasks = [];
             
             const taskData = {
                 category1: document.getElementById('taskCategory1').value,
@@ -2853,7 +3091,7 @@
             const headers = ['구분1', '구분2', '과제명', '담당자', '진행내용', '시작일', '종료일', '비고', '진행률'];
             excelData.push(headers);
             
-            project.tasks.forEach(task => {
+            (project.tasks || []).forEach(task => {
                 (task.progressItems || []).forEach(item => {
                     excelData.push([
                         task.category1,
@@ -2884,7 +3122,274 @@
             closeModal('exportModal');
         });
 
-        function saveToFirebase() {
+        // ==========================================
+        // 휴가 일정 기능
+        // ==========================================
+
+        let vacations = []; // [{ id, userId, userName, startDate, endDate, type }]
+        let vacCalYear = new Date().getFullYear();
+        let vacCalMonth = new Date().getMonth(); // 0-indexed
+
+        // 색상 팔레트 (사람별 일관된 색상 지정)
+        const VAC_COLORS = [
+            { bg: '#ede9fe', text: '#5b21b6', border: '#c4b5fd' },
+            { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd' },
+            { bg: '#dcfce7', text: '#166534', border: '#86efac' },
+            { bg: '#fef3c7', text: '#92400e', border: '#fcd34d' },
+            { bg: '#fce7f3', text: '#9d174d', border: '#f9a8d4' },
+            { bg: '#e0f2fe', text: '#075985', border: '#7dd3fc' },
+            { bg: '#ffedd5', text: '#9a3412', border: '#fdba74' },
+            { bg: '#f0fdf4', text: '#14532d', border: '#86efac' },
+        ];
+
+        function getUserColor(userId) {
+            // 사용자 ID 기반으로 일관된 색상 반환
+            let hash = 0;
+            for (let c of String(userId)) hash = (hash * 31 + c.charCodeAt(0)) & 0xffff;
+            return VAC_COLORS[hash % VAC_COLORS.length];
+        }
+
+        function openVacationView() {
+            // 사이드바 프로젝트 active 해제
+            document.querySelectorAll('.project-item').forEach(el => el.classList.remove('active'));
+            document.getElementById('vacationTabBtn').style.outline = '2px solid #7c3aed';
+
+            const area = document.getElementById('projectContent');
+            const header = document.querySelector('#appWrapper .project-header');
+            if (header) header.style.display = 'none';
+
+            vacCalYear = new Date().getFullYear();
+            vacCalMonth = new Date().getMonth();
+            renderVacationView();
+        }
+
+        function renderVacationView() {
+            const area = document.getElementById('projectContent');
+
+            // 이번 달 휴가 목록 (이름 순 정렬)
+            const monthVacs = getMonthVacations(vacCalYear, vacCalMonth);
+
+            const monthNames = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+
+            area.innerHTML = `
+                <div class="vacation-view">
+                    <div class="vacation-header">
+                        <h2>🏖️ 휴가 일정</h2>
+                        <button class="btn btn-primary" onclick="openVacationModal()" style="background:#7c3aed;">+ 휴가 기간 추가</button>
+                    </div>
+
+                    <div class="vacation-nav">
+                        <button onclick="changeVacMonth(-1)">&#8249;</button>
+                        <span class="month-label">${vacCalYear}년 ${monthNames[vacCalMonth]}</span>
+                        <button onclick="changeVacMonth(1)">&#8250;</button>
+                    </div>
+
+                    <div style="margin-top:16px;">
+                        ${renderCalendarGrid(vacCalYear, vacCalMonth)}
+                    </div>
+
+                    <div class="vacation-list-section">
+                        <div class="vacation-list-title">📋 ${monthNames[vacCalMonth]} 휴가 목록</div>
+                        ${renderVacList(monthVacs)}
+                    </div>
+                </div>
+            `;
+        }
+
+        function changeVacMonth(delta) {
+            vacCalMonth += delta;
+            if (vacCalMonth < 0) { vacCalMonth = 11; vacCalYear--; }
+            if (vacCalMonth > 11) { vacCalMonth = 0; vacCalYear++; }
+            renderVacationView();
+        }
+
+        function getMonthVacations(year, month) {
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            return vacations.filter(v => {
+                const s = new Date(v.startDate);
+                const e = new Date(v.endDate);
+                return s <= lastDay && e >= firstDay;
+            }).sort((a, b) => a.userName.localeCompare(b.userName));
+        }
+
+        function getDayVacations(dateStr) {
+            const d = new Date(dateStr);
+            return vacations.filter(v => {
+                const s = new Date(v.startDate);
+                const e = new Date(v.endDate);
+                return s <= d && e >= d;
+            });
+        }
+
+        function renderCalendarGrid(year, month) {
+            const dayHeaders = ['일','월','화','수','목','금','토'];
+            const headerClasses = ['sun','','','','','','sat'];
+            let html = '<div class="calendar-grid">';
+
+            // 요일 헤더
+            dayHeaders.forEach((d, i) => {
+                html += `<div class="cal-day-header ${headerClasses[i]}">${d}</div>`;
+            });
+
+            const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+            const lastDate = new Date(year, month + 1, 0).getDate();
+            const prevLastDate = new Date(year, month, 0).getDate();
+            const today = new Date();
+            const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
+            let dayCount = 0;
+            // 앞쪽 이전 달 채우기
+            for (let i = 0; i < firstDay; i++) {
+                const d = prevLastDate - firstDay + 1 + i;
+                const prevMonth = month === 0 ? 12 : month;
+                const prevYear = month === 0 ? year - 1 : year;
+                const dateStr = `${prevYear}-${String(prevMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                html += renderCalCell(d, dateStr, true, dayCount % 7);
+                dayCount++;
+            }
+            // 이번 달
+            for (let d = 1; d <= lastDate; d++) {
+                const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const isToday = dateStr === todayStr;
+                html += renderCalCell(d, dateStr, false, dayCount % 7, isToday);
+                dayCount++;
+            }
+            // 뒷쪽 다음 달 채우기
+            const remaining = 7 - (dayCount % 7);
+            if (remaining < 7) {
+                const nextMonth = month === 11 ? 1 : month + 2;
+                const nextYear = month === 11 ? year + 1 : year;
+                for (let d = 1; d <= remaining; d++) {
+                    const dateStr = `${nextYear}-${String(nextMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                    html += renderCalCell(d, dateStr, true, dayCount % 7);
+                    dayCount++;
+                }
+            }
+
+            html += '</div>';
+            return html;
+        }
+
+        function renderCalCell(day, dateStr, otherMonth, weekday, isToday) {
+            const dayVacs = getDayVacations(dateStr);
+            let classes = 'cal-cell';
+            if (otherMonth) classes += ' other-month';
+            if (isToday) classes += ' today';
+            if (weekday === 0) classes += ' sunday';
+            if (weekday === 6) classes += ' saturday';
+
+            let chipsHtml = '';
+            dayVacs.forEach(v => {
+                const col = getUserColor(v.userId);
+                chipsHtml += `<div class="vac-chip" style="background:${col.bg};color:${col.text};border:1px solid ${col.border};" title="${v.userName} (${v.type})">${v.userName} <span style="opacity:0.75;">${v.type}</span></div>`;
+            });
+
+            return `<div class="${classes}">
+                <span class="cal-date">${day}</span>
+                <div>${chipsHtml}</div>
+            </div>`;
+        }
+
+        function renderVacList(monthVacs) {
+            if (monthVacs.length === 0) {
+                return '<div class="vac-empty">이 달에 등록된 휴가가 없습니다.</div>';
+            }
+            return monthVacs.map(v => {
+                const col = getUserColor(v.userId);
+                const canDelete = loggedInUser && (loggedInUser.id === v.userId || loggedInUser.isAdmin);
+                return `<div class="vac-list-item">
+                    <span class="vac-name-badge" style="color:${col.text};">${escapeHtml(v.userName)}</span>
+                    <span class="vac-type-badge" style="background:${col.text};">${escapeHtml(v.type)}</span>
+                    <span class="vac-dates">${v.startDate} ~ ${v.endDate}</span>
+                    ${canDelete ? `<button class="vac-del-btn" onclick="deleteVacation('${v.id}')" title="삭제">✕</button>` : ''}
+                </div>`;
+            }).join('');
+        }
+
+        function openVacationModal() {
+            // 날짜 기본값: 오늘
+            const today = new Date().toISOString().slice(0, 10);
+            document.getElementById('vacStartDate').value = today;
+            document.getElementById('vacEndDate').value = today;
+            document.getElementById('vacType').value = '연차';
+            document.getElementById('vacMsg').className = 'auth-msg';
+            document.getElementById('vacMsg').textContent = '';
+            document.getElementById('vacationModal').classList.add('active');
+        }
+
+        async function confirmAddVacation() {
+            const startDate = document.getElementById('vacStartDate').value;
+            const endDate = document.getElementById('vacEndDate').value;
+            const type = document.getElementById('vacType').value;
+            const msgEl = document.getElementById('vacMsg');
+
+            if (!startDate || !endDate) {
+                msgEl.className = 'auth-msg error';
+                msgEl.textContent = '시작일과 종료일을 입력해 주세요.';
+                return;
+            }
+            if (startDate > endDate) {
+                msgEl.className = 'auth-msg error';
+                msgEl.textContent = '종료일은 시작일 이후여야 합니다.';
+                return;
+            }
+            if (!loggedInUser) {
+                msgEl.className = 'auth-msg error';
+                msgEl.textContent = '로그인이 필요합니다.';
+                return;
+            }
+
+            const newVac = {
+                id: Date.now().toString(),
+                userId: loggedInUser.id,
+                userName: loggedInUser.name,
+                startDate,
+                endDate,
+                type,
+                createdAt: Date.now()
+            };
+
+            vacations.push(newVac);
+            await saveVacationsToFirebase();
+            closeModal('vacationModal');
+            renderVacationView();
+        }
+
+        async function deleteVacation(vacId) {
+            if (!confirm('해당 휴가를 삭제하시겠습니까?')) return;
+            vacations = vacations.filter(v => v.id !== vacId);
+            await saveVacationsToFirebase();
+            renderVacationView();
+        }
+
+        async function saveVacationsToFirebase() {
+            if (typeof firebase === 'undefined') return;
+            await firebase.database().ref('shared/vacations').set(vacations.length > 0 ? vacations : null);
+        }
+
+        function loadVacationsFromFirebase() {
+            if (typeof firebase === 'undefined') return;
+            firebase.database().ref('shared/vacations').on('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    vacations = Array.isArray(data) ? data : Object.values(data || {});
+                } else {
+                    vacations = [];
+                }
+                // 휴가 뷰가 열려있으면 갱신
+                const header = document.querySelector('#appWrapper .project-header');
+                if (header && header.style.display === 'none') {
+                    const vacView = document.querySelector('.vacation-view');
+                    if (vacView) renderVacationView();
+                }
+            });
+        }
+
+        // ==========================================
+        // 기존 saveToFirebase
+        // ==========================================
+
             if (typeof firebase === 'undefined') return;
             const userRef = getDatabase().ref('shared/projects');
             userRef.set(projects)
@@ -2895,6 +3400,24 @@
                 });
         }
 
+        // Firebase에서 로드한 데이터 정규화
+        // (빈 배열은 Firebase가 삭제하므로 tasks가 undefined일 수 있음)
+        function normalizeProjects(data) {
+            if (!Array.isArray(data)) {
+                // Firebase가 sparse array를 object로 반환할 수 있음
+                data = Object.values(data || {});
+            }
+            data.forEach(p => {
+                if (!p.tasks) p.tasks = [];
+                if (!Array.isArray(p.tasks)) p.tasks = Object.values(p.tasks);
+                p.tasks.forEach(t => {
+                    if (!t.progressItems) t.progressItems = [];
+                    if (!Array.isArray(t.progressItems)) t.progressItems = Object.values(t.progressItems);
+                });
+            });
+            return data;
+        }
+
         function loadFromFirebase() {
             if (typeof firebase === 'undefined') return;
             const userRef = getDatabase().ref('shared/projects');
@@ -2902,7 +3425,7 @@
             userRef.once('value')
                 .then((snapshot) => {
                     if (snapshot.exists()) {
-                        projects = snapshot.val();
+                        projects = normalizeProjects(snapshot.val());
                     } else {
                         projects = [];
                         addSampleData();
@@ -2924,7 +3447,7 @@
             
             userRef.on('value', (snapshot) => {
                 if (snapshot.exists()) {
-                    const remoteProjects = snapshot.val();
+                    const remoteProjects = normalizeProjects(snapshot.val());
                     if (JSON.stringify(projects) !== JSON.stringify(remoteProjects)) {
                         projects = remoteProjects;
                         renderProjectList();
