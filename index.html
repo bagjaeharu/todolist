@@ -867,6 +867,38 @@
         .btn-sm { padding: 6px 12px; font-size: 0.85em; }
         .task-list { display: grid; gap: 0; }
 
+        .import-table { width: 100%; border-collapse: collapse; font-size: 0.8em; }
+        .import-table th {
+            background: #f1f5f9;
+            padding: 8px 10px;
+            text-align: left;
+            font-weight: 700;
+            color: #475569;
+            border-bottom: 1px solid #e2e8f0;
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+        }
+        .import-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #374151;
+            white-space: nowrap;
+            max-width: 160px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .import-table tr:last-child td { border-bottom: none; }
+        #importFile {
+            width: 100%;
+            padding: 10px;
+            border: 1px dashed #cbd5e1;
+            border-radius: 6px;
+            font-family: 'Nanum Gothic', sans-serif;
+            font-size: 0.9em;
+            cursor: pointer;
+        }
+
         .task-summary { display: grid; grid-template-columns: 150px 150px; gap: 15px; margin-bottom: 20px; }
         .task-summary-item { display: flex; flex-direction: column; gap: 4px; }
         .task-summary-label { font-weight: 700; color: #6b7280; font-size: 0.8em; }
@@ -999,6 +1031,7 @@
                         <h2 id="currentProjectName">프로젝트를 선택하세요</h2>
                         <div class="project-actions">
                             <button class="btn btn-primary" onclick="openTaskModal()">+ 과제 추가</button>
+                            <button class="btn btn-search" onclick="openImportModal()">📤 엑셀 업로드</button>
                             <button class="btn btn-secondary" onclick="editCurrentProject()">프로젝트 편집</button>
                             <button class="btn btn-danger" onclick="deleteCurrentProject()">프로젝트 삭제</button>
                         </div>
@@ -1078,6 +1111,51 @@
                     <button type="submit" class="btn btn-search">📥 다운로드</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Import Modal -->
+    <div class="modal" id="importModal">
+        <div class="modal-content">
+            <div class="modal-header">📤 엑셀로 과제 추가</div>
+
+            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+                <div style="font-weight: 700; color: #1e40af; margin-bottom: 8px;">📋 사용 방법</div>
+                <ol style="margin-left: 18px; color: #374151; font-size: 0.88em; line-height: 1.8;">
+                    <li>아래 <strong>양식 다운로드</strong>로 엑셀 양식을 받으세요.</li>
+                    <li>양식의 형식에 맞춰 과제를 입력하세요. (예시 행은 지우고 입력)</li>
+                    <li>작성한 파일을 <strong>파일 선택</strong>으로 업로드하세요.</li>
+                </ol>
+            </div>
+
+            <div class="form-group">
+                <label>1단계 · 양식 받기</label>
+                <button type="button" class="btn btn-secondary" style="width: 100%;" onclick="downloadTemplate()">📥 엑셀 양식 다운로드</button>
+            </div>
+
+            <div class="form-group">
+                <label>2단계 · 대상 프로젝트 선택 *</label>
+                <select id="importProject" required>
+                    <option value="">프로젝트를 선택하세요</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>3단계 · 작성한 엑셀 파일 업로드 *</label>
+                <input type="file" id="importFile" accept=".xlsx,.xls" onchange="handleFileSelect(event)">
+            </div>
+
+            <div id="importPreview" style="display:none; margin-bottom: 16px;">
+                <div style="font-weight: 700; color: #1f2937; margin-bottom: 8px; font-size: 0.9em;">미리보기</div>
+                <div id="importPreviewContent" style="max-height: 240px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px;"></div>
+            </div>
+
+            <div id="importMsg" class="auth-msg" style="margin-bottom: 16px;"></div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeImportModal()">취소</button>
+                <button type="button" class="btn btn-search" id="importConfirmBtn" onclick="confirmImport()" disabled>과제 추가</button>
+            </div>
         </div>
     </div>
 
@@ -1806,6 +1884,265 @@
             });
             document.getElementById('exportModal').classList.add('active');
         }
+
+        // ==========================================
+        // 엑셀 업로드 (과제 일괄 추가)
+        // ==========================================
+        const IMPORT_HEADERS = ['구분1', '구분2', '과제명', '담당자', '진행내용', '시작일', '종료일', '비고', '진행상황', '진행률'];
+        let parsedImportRows = []; // 업로드 확정 전 임시 보관
+
+        function openImportModal() {
+            // 프로젝트 선택 드롭다운 채우기
+            const select = document.getElementById('importProject');
+            select.innerHTML = '<option value="">프로젝트를 선택하세요</option>';
+            projects.forEach(p => {
+                const option = document.createElement('option');
+                option.value = p.id;
+                option.textContent = p.name;
+                select.appendChild(option);
+            });
+            // 현재 선택된 프로젝트 기본값
+            if (currentProjectId) select.value = currentProjectId;
+
+            // 초기화
+            document.getElementById('importFile').value = '';
+            document.getElementById('importPreview').style.display = 'none';
+            document.getElementById('importPreviewContent').innerHTML = '';
+            document.getElementById('importMsg').className = 'auth-msg';
+            document.getElementById('importMsg').textContent = '';
+            document.getElementById('importConfirmBtn').disabled = true;
+            parsedImportRows = [];
+
+            document.getElementById('importModal').classList.add('active');
+        }
+
+        function closeImportModal() {
+            document.getElementById('importModal').classList.remove('active');
+        }
+
+        function showImportMsg(text, type) {
+            const el = document.getElementById('importMsg');
+            el.textContent = text;
+            el.className = 'auth-msg ' + type;
+        }
+
+        // 양식 다운로드
+        function downloadTemplate() {
+            const data = [
+                IMPORT_HEADERS,
+                // 예시 행 (사용자가 참고 후 삭제)
+                ['계약', '택배/물류', '계약기간 연장', '홍길동', '진행 내용을 입력하세요', '2026-07-01', '2026-07-31', '비고 메모', '진행중', 50],
+                ['업무환경', 'PS&M', '사무실 이전', '김철수', '이전 협의 진행', '', '', '', '예정', 0]
+            ];
+
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            ws['!cols'] = [
+                { wch: 12 }, { wch: 12 }, { wch: 22 }, { wch: 12 }, { wch: 28 },
+                { wch: 12 }, { wch: 12 }, { wch: 16 }, { wch: 10 }, { wch: 8 }
+            ];
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, '과제양식');
+            XLSX.writeFile(wb, '과제_업로드_양식.xlsx');
+        }
+
+        // 파일 선택 → 파싱 → 미리보기
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            document.getElementById('importMsg').className = 'auth-msg';
+            document.getElementById('importMsg').textContent = '';
+            document.getElementById('importConfirmBtn').disabled = true;
+            parsedImportRows = [];
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const wb = XLSX.read(data, { type: 'array' });
+                    const sheet = wb.Sheets[wb.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+
+                    if (rows.length < 2) {
+                        showImportMsg('데이터가 없습니다. 양식에 과제를 입력한 후 업로드하세요.', 'error');
+                        return;
+                    }
+
+                    // 헤더 검증
+                    const fileHeaders = rows[0].map(h => String(h).trim());
+                    const requiredCols = ['구분1', '구분2', '과제명', '담당자'];
+                    const missingCol = requiredCols.find(c => !fileHeaders.includes(c));
+                    if (missingCol) {
+                        showImportMsg('양식이 올바르지 않습니다. "' + missingCol + '" 열을 찾을 수 없습니다. 양식 다운로드 후 다시 작성해 주세요.', 'error');
+                        return;
+                    }
+
+                    // 열 인덱스 매핑
+                    const colIdx = {};
+                    IMPORT_HEADERS.forEach(h => { colIdx[h] = fileHeaders.indexOf(h); });
+
+                    // 데이터 행 파싱
+                    const dataRows = rows.slice(1);
+                    const valid = [];
+                    dataRows.forEach(row => {
+                        const getVal = (col) => colIdx[col] >= 0 ? String(row[colIdx[col]] ?? '').trim() : '';
+                        const category1 = getVal('구분1');
+                        const category2 = getVal('구분2');
+                        const title = getVal('과제명');
+                        const assignee = getVal('담당자');
+
+                        // 핵심 4개 필드가 모두 비어있으면 빈 행으로 간주하고 건너뜀
+                        if (!category1 && !category2 && !title && !assignee) return;
+
+                        let status = getVal('진행상황') || '예정';
+                        if (!['예정', '진행중', '완료'].includes(status)) status = '예정';
+
+                        let progress = parseInt(getVal('진행률'));
+                        if (isNaN(progress) || progress < 0) progress = 0;
+                        if (progress > 100) progress = 100;
+
+                        valid.push({
+                            category1: category1,
+                            category2: category2,
+                            title: title,
+                            assignee: assignee,
+                            content: getVal('진행내용'),
+                            startDate: normalizeDate(getVal('시작일')),
+                            endDate: normalizeDate(getVal('종료일')),
+                            notes: getVal('비고'),
+                            status: status,
+                            progress: progress
+                        });
+                    });
+
+                    if (valid.length === 0) {
+                        showImportMsg('유효한 과제가 없습니다. 구분1·구분2·과제명·담당자 중 하나 이상을 입력해 주세요.', 'error');
+                        return;
+                    }
+
+                    parsedImportRows = valid;
+                    renderImportPreview(valid);
+                    document.getElementById('importConfirmBtn').disabled = false;
+                    showImportMsg('총 ' + valid.length + '개의 과제를 추가할 수 있습니다. 내용 확인 후 "과제 추가"를 누르세요.', 'success');
+
+                } catch (err) {
+                    console.error('엑셀 파싱 오류:', err);
+                    showImportMsg('파일을 읽는 중 오류가 발생했습니다. 양식 파일이 맞는지 확인해 주세요.', 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // 날짜 형식 정규화 (엑셀 날짜 숫자/문자열 → YYYY-MM-DD)
+        function normalizeDate(val) {
+            if (!val) return '';
+            const str = String(val).trim();
+            if (!str) return '';
+            // 이미 YYYY-MM-DD 형태
+            if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(str)) {
+                const parts = str.split('-');
+                return parts[0] + '-' + parts[1].padStart(2, '0') + '-' + parts[2].padStart(2, '0');
+            }
+            // 엑셀 날짜 일련번호 (숫자)
+            if (/^\d+(\.\d+)?$/.test(str)) {
+                const serial = parseFloat(str);
+                if (serial > 0 && serial < 100000) {
+                    const date = new Date(Date.UTC(1899, 11, 30) + serial * 86400000);
+                    if (!isNaN(date.getTime())) {
+                        return date.toISOString().slice(0, 10);
+                    }
+                }
+            }
+            // YYYY/MM/DD 또는 YYYY.MM.DD
+            const m = str.match(/^(\d{4})[\/.](\d{1,2})[\/.](\d{1,2})$/);
+            if (m) {
+                return m[1] + '-' + m[2].padStart(2, '0') + '-' + m[3].padStart(2, '0');
+            }
+            return str; // 변환 실패 시 원본 유지
+        }
+
+        // 미리보기 테이블 렌더링
+        function renderImportPreview(rows) {
+            const preview = document.getElementById('importPreview');
+            const content = document.getElementById('importPreviewContent');
+
+            const showRows = rows.slice(0, 50); // 최대 50행 미리보기
+            let html = '<table class="import-table"><thead><tr>';
+            ['구분1', '구분2', '과제명', '담당자', '진행상황', '진행률'].forEach(h => {
+                html += '<th>' + h + '</th>';
+            });
+            html += '</tr></thead><tbody>';
+            showRows.forEach(r => {
+                html += '<tr>' +
+                    '<td>' + escapeHtml(r.category1) + '</td>' +
+                    '<td>' + escapeHtml(r.category2) + '</td>' +
+                    '<td>' + escapeHtml(r.title) + '</td>' +
+                    '<td>' + escapeHtml(r.assignee) + '</td>' +
+                    '<td>' + escapeHtml(r.status) + '</td>' +
+                    '<td>' + r.progress + '%</td>' +
+                    '</tr>';
+            });
+            html += '</tbody></table>';
+            if (rows.length > 50) {
+                html += '<div style="padding: 8px; text-align: center; color: #94a3b8; font-size: 0.85em;">… 외 ' + (rows.length - 50) + '개 더</div>';
+            }
+            content.innerHTML = html;
+            preview.style.display = 'block';
+        }
+
+        // 업로드 확정 → 과제 추가
+        function confirmImport() {
+            const projectId = parseInt(document.getElementById('importProject').value);
+            if (!projectId) {
+                showImportMsg('대상 프로젝트를 선택해 주세요.', 'error');
+                return;
+            }
+            if (parsedImportRows.length === 0) {
+                showImportMsg('추가할 과제가 없습니다.', 'error');
+                return;
+            }
+
+            const project = projects.find(p => p.id === projectId);
+            if (!project) {
+                showImportMsg('프로젝트를 찾을 수 없습니다.', 'error');
+                return;
+            }
+
+            if (!project.tasks) project.tasks = [];
+
+            const baseId = Date.now();
+            parsedImportRows.forEach((row, idx) => {
+                project.tasks.push({
+                    id: baseId + idx,
+                    category1: row.category1,
+                    category2: row.category2,
+                    title: row.title,
+                    assignee: row.assignee,
+                    notes: row.notes,
+                    status: row.status,
+                    progress: row.progress,
+                    progressItems: [{
+                        id: 1,
+                        content: row.content || '',
+                        startDate: row.startDate || '',
+                        endDate: row.endDate || ''
+                    }]
+                });
+            });
+
+            const addedCount = parsedImportRows.length;
+            saveToFirebase();
+
+            // 추가한 프로젝트로 이동 후 화면 갱신
+            currentProjectId = projectId;
+            renderProjectList();
+            renderContent();
+
+            closeImportModal();
+            alert(addedCount + '개의 과제가 "' + project.name + '" 프로젝트에 추가되었습니다.');
+        }
+
 
         function openTaskModal() {
             if (!currentProjectId) {
