@@ -391,6 +391,24 @@
         .team-access-item label { flex: 1; font-size: 0.9em; font-weight: 700; }
         .team-access-item select { padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.85em; font-family: 'Nanum Gothic', sans-serif; }
 
+        /* 인라인 사용자 편집 */
+        .user-edit-inline { display: none; padding: 16px 0 8px; border-top: 1px solid #e2e8f0; margin-top: 12px; width: 100%; }
+        .user-edit-inline.open { display: block; }
+        .user-edit-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+        .user-edit-field label { display: block; font-size: 0.82em; font-weight: 700; color: #64748b; margin-bottom: 4px; }
+        .user-edit-field input, .user-edit-field select { width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9em; font-family: 'Nanum Gothic', sans-serif; }
+        .user-edit-field input:focus, .user-edit-field select:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.12); }
+        .user-edit-field input:disabled { background: #f1f5f9; color: #94a3b8; }
+        .user-edit-team-title { font-size: 0.85em; font-weight: 700; color: #374151; margin-bottom: 8px; }
+        .user-edit-team-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px; margin-bottom: 14px; }
+        .user-edit-team-row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; }
+        .user-edit-team-row label { flex: 1; font-size: 0.85em; font-weight: 700; color: #374151; }
+        .user-edit-team-row select { padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.82em; font-family: 'Nanum Gothic', sans-serif; }
+        .user-edit-actions { display: flex; gap: 8px; justify-content: flex-end; }
+        .user-edit-msg { font-size: 0.85em; padding: 8px 12px; border-radius: 6px; margin-bottom: 10px; display: none; }
+        .user-edit-msg.error { display: block; background: #fef2f2; color: #dc2626; }
+        .user-edit-msg.success { display: block; background: #f0fdf4; color: #16a34a; }
+
         /* ========== 반응형 ========== */
         @media (max-width: 768px) {
             .cal-cell { min-height: 70px; }
@@ -461,33 +479,6 @@
                 <div class="admin-section" id="adminApproved"></div>
                 <div class="admin-section" id="adminTeams"></div>
                 <div class="admin-section" id="adminRejected"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ========== 사용자 편집 모달 ========== -->
-    <div class="modal" id="userEditModal">
-        <div class="modal-content">
-            <div class="modal-header">사용자 정보 수정</div>
-            <div class="form-group"><label>아이디</label><input type="text" id="editUserId" disabled style="background:#f1f5f9;"></div>
-            <div class="form-group"><label>이름</label><input type="text" id="editUserName"></div>
-            <div class="form-group"><label>소속</label><input type="text" id="editUserTeam"></div>
-            <div class="form-group">
-                <label>역할</label>
-                <select id="editUserRole">
-                    <option value="member">Member</option>
-                    <option value="admin">팀 관리자</option>
-                    <option value="superadmin">전체 관리자</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>팀 접근 권한</label>
-                <div id="editTeamAccessList" class="team-access-list"></div>
-            </div>
-            <div id="userEditMsg" class="auth-msg"></div>
-            <div class="modal-actions">
-                <button type="button" class="btn btn-secondary" onclick="closeModal('userEditModal')">취소</button>
-                <button type="button" class="btn btn-primary" onclick="saveUserEdit()">저장</button>
             </div>
         </div>
     </div>
@@ -1095,14 +1086,50 @@
                     ? '<div class="empty-admin">승인된 사용자가 없습니다.</div>'
                     : approved.map(u => {
                         const teamNames = Object.keys(u.teamAccess || {}).map(tid => { const t = allTeams.find(tt => tt.id === tid); return t ? t.name : tid; }).join(', ') || '없음';
-                        return `<div class="user-card">
-                            <div class="user-card-info">
-                                <div class="user-card-name">${escapeHtml(u.name)} ${getRoleBadge(u.role || 'member')}</div>
-                                <div class="user-card-detail">아이디: ${escapeHtml(u.id)} · 소속: ${escapeHtml(u.team)} · 팀 접근: ${escapeHtml(teamNames)}</div>
+                        const teamAccessRows = allTeams.map(t => {
+                            const cur = (u.teamAccess || {})[t.id] || '';
+                            return `<div class="user-edit-team-row">
+                                <label>${escapeHtml(t.name)}</label>
+                                <select id="inlineAccess_${u.id}_${t.id}">
+                                    <option value="" ${!cur ? 'selected' : ''}>접근 불가</option>
+                                    <option value="member" ${cur === 'member' ? 'selected' : ''}>Member</option>
+                                    <option value="admin" ${cur === 'admin' ? 'selected' : ''}>팀 관리자</option>
+                                </select>
+                            </div>`;
+                        }).join('');
+                        return `<div class="user-card" id="userCard_${u.id}" style="flex-direction:column;align-items:stretch;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                                <div class="user-card-info">
+                                    <div class="user-card-name">${escapeHtml(u.name)} ${getRoleBadge(u.role || 'member')}</div>
+                                    <div class="user-card-detail">아이디: ${escapeHtml(u.id)} · 소속: ${escapeHtml(u.team)} · 팀 접근: ${escapeHtml(teamNames)}</div>
+                                </div>
+                                <div class="user-card-actions">
+                                    <button class="btn btn-sm btn-primary" onclick="toggleUserEdit('${u.id}')">편집</button>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteUser('${u.id}')">삭제</button>
+                                </div>
                             </div>
-                            <div class="user-card-actions">
-                                <button class="btn btn-sm btn-primary" onclick="openUserEditModal('${u.id}')">편집</button>
-                                <button class="btn btn-sm btn-danger" onclick="deleteUser('${u.id}')">삭제</button>
+                            <div class="user-edit-inline" id="userEdit_${u.id}">
+                                <div class="user-edit-row">
+                                    <div class="user-edit-field"><label>아이디</label><input type="text" value="${escapeHtml(u.id)}" disabled></div>
+                                    <div class="user-edit-field"><label>이름</label><input type="text" id="inlineName_${u.id}" value="${escapeHtml(u.name)}"></div>
+                                    <div class="user-edit-field"><label>소속</label><input type="text" id="inlineTeam_${u.id}" value="${escapeHtml(u.team)}"></div>
+                                </div>
+                                <div class="user-edit-row" style="grid-template-columns:1fr 2fr;">
+                                    <div class="user-edit-field"><label>역할</label>
+                                        <select id="inlineRole_${u.id}">
+                                            <option value="member" ${(u.role||'member')==='member'?'selected':''}>Member</option>
+                                            <option value="admin" ${u.role==='admin'?'selected':''}>팀 관리자</option>
+                                            <option value="superadmin" ${u.role==='superadmin'?'selected':''}>전체 관리자</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="user-edit-team-title">팀 접근 권한</div>
+                                <div class="user-edit-team-grid">${teamAccessRows}</div>
+                                <div class="user-edit-msg" id="inlineMsg_${u.id}"></div>
+                                <div class="user-edit-actions">
+                                    <button class="btn btn-sm btn-secondary" onclick="toggleUserEdit('${u.id}')">취소</button>
+                                    <button class="btn btn-sm btn-primary" onclick="saveInlineUserEdit('${u.id}')">저장</button>
+                                </div>
                             </div>
                         </div>`;
                     }).join('');
@@ -1187,42 +1214,28 @@
             loadAdminUsers();
         }
 
-        // 사용자 편집 모달
-        let editTargetUserId = null;
-        async function openUserEditModal(userId) {
-            editTargetUserId = userId;
-            const snap = await firebase.database().ref('app_users/' + userId).once('value');
-            const u = snap.val();
-            document.getElementById('editUserId').value = u.id;
-            document.getElementById('editUserName').value = u.name;
-            document.getElementById('editUserTeam').value = u.team;
-            document.getElementById('editUserRole').value = u.role || 'member';
-            const list = document.getElementById('editTeamAccessList');
-            list.innerHTML = allTeams.map(t => {
-                const cur = (u.teamAccess || {})[t.id] || '';
-                return `<div class="team-access-item">
-                    <label>${escapeHtml(t.name)}</label>
-                    <select id="editAccess_${t.id}">
-                        <option value="" ${!cur ? 'selected' : ''}>접근 불가</option>
-                        <option value="member" ${cur === 'member' ? 'selected' : ''}>Member</option>
-                        <option value="admin" ${cur === 'admin' ? 'selected' : ''}>팀 관리자</option>
-                    </select>
-                </div>`;
-            }).join('');
-            document.getElementById('userEditMsg').className = 'auth-msg';
-            document.getElementById('userEditModal').classList.add('active');
+        // 사용자 인라인 편집
+        function toggleUserEdit(userId) {
+            const el = document.getElementById('userEdit_' + userId);
+            if (!el) return;
+            // 다른 열린 편집 영역 닫기
+            document.querySelectorAll('.user-edit-inline.open').forEach(e => { if (e.id !== 'userEdit_' + userId) e.classList.remove('open'); });
+            el.classList.toggle('open');
         }
 
-        async function saveUserEdit() {
-            const name = document.getElementById('editUserName').value.trim();
-            const team = document.getElementById('editUserTeam').value.trim();
-            const role = document.getElementById('editUserRole').value;
-            if (!name || !team) { const m = document.getElementById('userEditMsg'); m.className = 'auth-msg error'; m.textContent = '이름과 소속을 입력하세요.'; return; }
+        async function saveInlineUserEdit(userId) {
+            const name = document.getElementById('inlineName_' + userId).value.trim();
+            const team = document.getElementById('inlineTeam_' + userId).value.trim();
+            const role = document.getElementById('inlineRole_' + userId).value;
+            const msgEl = document.getElementById('inlineMsg_' + userId);
+            if (!name || !team) { msgEl.className = 'user-edit-msg error'; msgEl.textContent = '이름과 소속을 입력하세요.'; return; }
             const teamAccess = {};
-            allTeams.forEach(t => { const v = document.getElementById('editAccess_' + t.id).value; if (v) teamAccess[t.id] = v; });
-            await firebase.database().ref('app_users/' + editTargetUserId).update({ name, team, role, teamAccess });
-            closeModal('userEditModal');
-            loadAdminUsers();
+            allTeams.forEach(t => { const v = document.getElementById('inlineAccess_' + userId + '_' + t.id); if (v && v.value) teamAccess[t.id] = v.value; });
+            try {
+                await firebase.database().ref('app_users/' + userId).update({ name, team, role, teamAccess });
+                msgEl.className = 'user-edit-msg success'; msgEl.textContent = '저장되었습니다.';
+                setTimeout(() => loadAdminUsers(), 800);
+            } catch (e) { msgEl.className = 'user-edit-msg error'; msgEl.textContent = '저장 실패: ' + e.message; }
         }
 
         async function rejectUser(uid) { if (!confirm(uid + ' 사용자를 반려하시겠습니까?')) return; await firebase.database().ref('app_users/' + uid + '/status').set('rejected'); loadAdminUsers(); }
