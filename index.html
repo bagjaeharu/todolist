@@ -677,6 +677,10 @@
     <div class="modal" id="vacationModal">
         <div class="modal-content">
             <div class="modal-header">🏖️ 휴가 기간 추가</div>
+            <div class="form-group" id="vacTargetGroup" style="display:none;">
+                <label for="vacTargetUser">대상자</label>
+                <select id="vacTargetUser"></select>
+            </div>
             <div class="form-group"><label for="vacStartDate">시작일 *</label><input type="date" id="vacStartDate" required></div>
             <div class="form-group"><label for="vacEndDate">종료일 *</label><input type="date" id="vacEndDate" required></div>
             <div class="form-group"><label for="vacType">휴가 유형</label>
@@ -1865,18 +1869,42 @@
             if (!monthVacs.length) return '<div class="vac-empty">이 달에 등록된 휴가가 없습니다.</div>';
             return monthVacs.map(v => {
                 const c = getUserColor(v.userId);
-                const canDel = loggedInUser && (loggedInUser.id === v.userId || loggedInUser.role === 'superadmin');
+                const canDel = loggedInUser && (loggedInUser.id === v.userId || loggedInUser.role === 'superadmin' || isTeamAdmin(currentTeamId));
                 return '<div class="vac-list-item"><span class="vac-name-badge" style="color:'+c.text+';">'+escapeHtml(v.userName)+'</span><span class="vac-type-badge" style="background:'+c.text+';">'+escapeHtml(v.type)+'</span><span class="vac-dates">'+v.startDate+' ~ '+v.endDate+'</span>'+(canDel?'<button class="vac-del-btn" onclick="deleteVacation(\''+v.id+'\')" title="삭제">✕</button>':'')+'</div>';
             }).join('');
         }
 
-        function openVacationModal() {
+        // 현재 팀에 접근 권한이 있는 승인된 사용자 목록 (팀관리자가 대신 휴가 등록 시 사용)
+        async function getTeamMembers(teamId) {
+            const snap = await firebase.database().ref('app_users').once('value');
+            const users = snap.val() || {};
+            return Object.values(users)
+                .filter(u => u.status === 'approved' && ((u.teamAccess || {})[teamId] || u.role === 'superadmin'))
+                .sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+        }
+
+        async function openVacationModal() {
             const today = new Date().toISOString().slice(0,10);
             document.getElementById('vacStartDate').value = today;
             document.getElementById('vacEndDate').value = today;
             document.getElementById('vacType').value = '연차';
             document.getElementById('vacMsg').className = 'auth-msg';
-            document.getElementById('vacationModal').classList.add('active');
+
+            const targetGroup = document.getElementById('vacTargetGroup');
+            const targetSelect = document.getElementById('vacTargetUser');
+            if (isTeamAdmin(currentTeamId)) {
+                targetGroup.style.display = '';
+                targetSelect.innerHTML = '<option value="">불러오는 중...</option>';
+                document.getElementById('vacationModal').classList.add('active');
+                const members = await getTeamMembers(currentTeamId);
+                targetSelect.innerHTML = members.map(m =>
+                    '<option value="' + m.id + '" data-name="' + escapeHtml(m.name) + '">' + escapeHtml(m.name) + ' (' + escapeHtml(m.id) + ')' + (m.id === loggedInUser.id ? ' - 나' : '') + '</option>'
+                ).join('');
+                if (members.some(m => m.id === loggedInUser.id)) targetSelect.value = loggedInUser.id;
+            } else {
+                targetGroup.style.display = 'none';
+                document.getElementById('vacationModal').classList.add('active');
+            }
         }
 
         async function confirmAddVacation() {
@@ -1885,7 +1913,17 @@
             if (!sd || !ed) { msg.className = 'auth-msg error'; msg.textContent = '시작일과 종료일을 입력해 주세요.'; return; }
             if (sd > ed) { msg.className = 'auth-msg error'; msg.textContent = '종료일은 시작일 이후여야 합니다.'; return; }
             if (!loggedInUser) { msg.className = 'auth-msg error'; msg.textContent = '로그인이 필요합니다.'; return; }
-            vacations.push({ id: Date.now().toString(), userId: loggedInUser.id, userName: loggedInUser.name, startDate: sd, endDate: ed, type: tp, createdAt: Date.now() });
+
+            let targetId = loggedInUser.id, targetName = loggedInUser.name;
+            const targetGroup = document.getElementById('vacTargetGroup');
+            if (targetGroup.style.display !== 'none') {
+                const sel = document.getElementById('vacTargetUser');
+                const opt = sel.options[sel.selectedIndex];
+                if (!opt || !sel.value) { msg.className = 'auth-msg error'; msg.textContent = '대상자를 선택해 주세요.'; return; }
+                targetId = sel.value;
+                targetName = opt.dataset.name;
+            }
+            vacations.push({ id: Date.now().toString(), userId: targetId, userName: targetName, startDate: sd, endDate: ed, type: tp, createdAt: Date.now(), addedBy: loggedInUser.id });
             await saveVacationsToFirebase(); closeModal('vacationModal'); renderVacationView();
         }
 
