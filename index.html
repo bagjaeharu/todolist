@@ -233,6 +233,8 @@
         .content-area { padding: 30px; overflow-y: auto; }
         .project-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 2px solid #e2e8f0; flex-wrap: wrap; gap: 10px; }
         .project-header h2 { color: #1f2937; font-size: 1.8em; font-weight: 700; }
+        .project-title-wrap { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+        .project-desc-text { color: #64748b; font-size: 0.92em; font-weight: 400; line-height: 1.5; white-space: pre-line; max-width: 640px; }
         .project-actions { display: flex; gap: 10px; flex-wrap: wrap; }
         .btn { padding: 10px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; font-weight: 700; font-family: 'Nanum Gothic', sans-serif; transition: all 0.3s; }
         .btn-primary { background: #3b82f6; color: white; }
@@ -668,7 +670,10 @@
                 </div>
                 <div class="content-area">
                     <div class="project-header">
-                        <h2 id="currentProjectName">프로젝트를 선택하세요</h2>
+                        <div class="project-title-wrap">
+                            <h2 id="currentProjectName">프로젝트를 선택하세요</h2>
+                            <p class="project-desc-text" id="currentProjectDesc" style="display:none;"></p>
+                        </div>
                         <div class="project-actions">
                             <button class="btn btn-primary" onclick="openTaskModal()">+ 과제 추가</button>
                             <button class="btn btn-search" onclick="openImportModal()">📤 엑셀 업로드</button>
@@ -943,8 +948,6 @@
             if (!storedPw) return false;
             const hashed = await hashPassword(inputPw);
             if (storedPw === hashed) return true;
-            if (storedPw === inputPw) return true;
-            if (storedPw === 'plain:' + inputPw) return true;
             try {
                 if (window.crypto && window.crypto.subtle) {
                     const data = new TextEncoder().encode(inputPw);
@@ -1563,6 +1566,16 @@
             const project = projects.find(p => p.id === currentProjectId);
             if (!project) return;
             document.getElementById('currentProjectName').textContent = project.name;
+            const descEl = document.getElementById('currentProjectDesc');
+            if (descEl) {
+                if (project.description && project.description.trim()) {
+                    descEl.textContent = project.description;
+                    descEl.style.display = '';
+                } else {
+                    descEl.textContent = '';
+                    descEl.style.display = 'none';
+                }
+            }
             const tasks = project.tasks || [];
             const completed = tasks.filter(t => calcTaskStatus(t) === '완료').length;
             const inProgress = tasks.filter(t => calcTaskStatus(t) === '진행중').length;
@@ -2107,19 +2120,15 @@
                 targetId = sel.value;
                 targetName = opt.dataset.name;
             }
-            vacations.push({ id: Date.now().toString(), userId: targetId, userName: targetName, startDate: sd, endDate: ed, type: tp, createdAt: Date.now(), addedBy: loggedInUser.id });
-            await saveVacationsToFirebase(); closeModal('vacationModal'); renderVacationView();
+            const vac = { id: Date.now().toString(), userId: targetId, userName: targetName, startDate: sd, endDate: ed, type: tp, createdAt: Date.now(), addedBy: loggedInUser.id };
+            await teamDataRef('vacations/' + vac.id).set(vac);
+            closeModal('vacationModal'); renderVacationView();
         }
 
         async function deleteVacation(vacId) {
             if (!confirm('해당 휴가를 삭제하시겠습니까?')) return;
-            vacations = vacations.filter(v => v.id !== vacId);
-            await saveVacationsToFirebase(); renderVacationView();
-        }
-
-        async function saveVacationsToFirebase() {
-            if (!currentTeamId) return;
-            await teamDataRef('vacations').set(vacations.length > 0 ? vacations : null);
+            await teamDataRef('vacations/' + vacId).remove();
+            renderVacationView();
         }
 
         function loadVacationsFromFirebase() {
