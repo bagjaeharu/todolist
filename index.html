@@ -434,6 +434,26 @@
         .board-reply-input-row input:focus { outline: none; border-color: #0891b2; }
         .board-reply-input-row button { padding: 8px 14px; border: none; border-radius: 16px; background: #0891b2; color: white; font-size: 0.82em; font-weight: 700; cursor: pointer; font-family: 'Nanum Gothic', sans-serif; }
 
+        /* ========== AI 질의 ========== */
+        .ai-ask-view { max-width: 760px; margin: 0 auto; padding: 24px; }
+        .ai-ask-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+        .ai-ask-header h2 { font-size: 1.3em; }
+        .ai-ask-sub { color: #64748b; font-size: 0.88em; margin-bottom: 20px; }
+        .ai-chat-log { display: flex; flex-direction: column; gap: 14px; margin-bottom: 18px; min-height: 120px; }
+        .ai-msg { max-width: 88%; padding: 12px 16px; border-radius: 12px; line-height: 1.55; font-size: 0.92em; white-space: pre-wrap; word-break: break-word; }
+        .ai-msg-user { align-self: flex-end; background: #0891b2; color: white; border-bottom-right-radius: 3px; }
+        .ai-msg-ai { align-self: flex-start; background: #f1f5f9; color: #1e293b; border-bottom-left-radius: 3px; }
+        .ai-msg-error { align-self: flex-start; background: #fee2e2; color: #b91c1c; border-bottom-left-radius: 3px; }
+        .ai-msg-loading { align-self: flex-start; background: #f1f5f9; color: #64748b; font-style: italic; }
+        .ai-ask-input-row { display: flex; gap: 8px; position: sticky; bottom: 0; background: white; padding-top: 8px; }
+        .ai-ask-input-row textarea { flex: 1; resize: none; padding: 12px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 0.92em; font-family: 'Nanum Gothic', sans-serif; }
+        .ai-ask-input-row textarea:focus { outline: none; border-color: #0891b2; }
+        .ai-ask-input-row button { padding: 0 22px; border: none; border-radius: 10px; background: #0891b2; color: white; font-weight: 700; cursor: pointer; font-family: 'Nanum Gothic', sans-serif; }
+        .ai-ask-input-row button:disabled { background: #94a3b8; cursor: not-allowed; }
+        .ai-ask-suggestions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+        .ai-ask-suggestions button { padding: 7px 13px; border: 1px solid #cbd5e1; border-radius: 16px; background: white; color: #475569; font-size: 0.82em; cursor: pointer; font-family: 'Nanum Gothic', sans-serif; }
+        .ai-ask-suggestions button:hover { background: #f1f5f9; }
+
         /* ========== 팀 관리 모달 ========== */
         .team-manage-list { margin-top: 16px; }
         .team-manage-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; }
@@ -601,6 +621,7 @@
                     <button class="add-project-btn" id="vacationTabBtn" onclick="openVacationView()" style="background:#7c3aed;margin-top:8px;">🏖️ 휴가 일정</button>
                     <button class="add-project-btn" id="bestPracticeTabBtn" onclick="openBestPracticeView()" style="background:#ea580c;margin-top:8px;">🏆 우수사례 공유</button>
                     <button class="add-project-btn" id="workShareTabBtn" onclick="openWorkShareView()" style="background:#0891b2;margin-top:8px;">📢 업무 공유</button>
+                    <button class="add-project-btn" id="aiAskTabBtn" onclick="openAIAskView()" style="background:#7c3aed;margin-top:8px;">🤖 AI에게 물어보기</button>
                 </div>
                 <div class="content-area">
                     <div class="project-header">
@@ -852,6 +873,11 @@
         let wsCategoryFilter = '';
         let wsSearchKeyword = '';
         let wsReplyingTo = null;
+
+        // ⚠️ 배포한 Google Apps Script 웹앱 URL을 아래에 넣으세요.
+        const AI_PROXY_URL = 'https://script.google.com/macros/s/AKfycbyN7h4Wp76Fc-eiTxvxQG0Uw5mQJOl0dfSQ1sJ-hCwdb2wny3I_T8xEGxPI-PLIq2Ll/exec';
+        let aiChatHistory = [];
+        let aiAskLoading = false;
 
         // ==========================================
         // 유틸리티
@@ -1448,6 +1474,7 @@
             if (document.getElementById('vacationTabBtn')) document.getElementById('vacationTabBtn').style.outline = '';
             if (document.getElementById('bestPracticeTabBtn')) document.getElementById('bestPracticeTabBtn').style.outline = '';
             if (document.getElementById('workShareTabBtn')) document.getElementById('workShareTabBtn').style.outline = '';
+            if (document.getElementById('aiAskTabBtn')) document.getElementById('aiAskTabBtn').style.outline = '';
             renderProjectList();
             renderContent();
         }
@@ -1937,6 +1964,7 @@
             document.getElementById('vacationTabBtn').style.outline = '2px solid #7c3aed';
             if (document.getElementById('bestPracticeTabBtn')) document.getElementById('bestPracticeTabBtn').style.outline = '';
             if (document.getElementById('workShareTabBtn')) document.getElementById('workShareTabBtn').style.outline = '';
+            if (document.getElementById('aiAskTabBtn')) document.getElementById('aiAskTabBtn').style.outline = '';
             const header = document.querySelector('#appWrapper .project-header');
             if (header) header.style.display = 'none';
             vacCalYear = new Date().getFullYear(); vacCalMonth = new Date().getMonth();
@@ -2108,6 +2136,7 @@
             document.getElementById('bestPracticeTabBtn').style.outline = '2px solid #ea580c';
             if (document.getElementById('vacationTabBtn')) document.getElementById('vacationTabBtn').style.outline = '';
             if (document.getElementById('workShareTabBtn')) document.getElementById('workShareTabBtn').style.outline = '';
+            if (document.getElementById('aiAskTabBtn')) document.getElementById('aiAskTabBtn').style.outline = '';
             const header = document.querySelector('#appWrapper .project-header');
             if (header) header.style.display = 'none';
             currentBestPracticeId = null;
@@ -2296,6 +2325,7 @@
             document.getElementById('workShareTabBtn').style.outline = '2px solid #0891b2';
             if (document.getElementById('vacationTabBtn')) document.getElementById('vacationTabBtn').style.outline = '';
             if (document.getElementById('bestPracticeTabBtn')) document.getElementById('bestPracticeTabBtn').style.outline = '';
+            if (document.getElementById('aiAskTabBtn')) document.getElementById('aiAskTabBtn').style.outline = '';
             const header = document.querySelector('#appWrapper .project-header');
             if (header) header.style.display = 'none';
             currentWorkShareId = null;
@@ -2520,6 +2550,109 @@
             await teamDataRef('workShares/' + postId).remove();
             currentWorkShareId = null;
             renderWorkShareList();
+        }
+
+        // ==========================================
+        // AI에게 물어보기
+        // ==========================================
+        function openAIAskView() {
+            document.querySelectorAll('.project-item').forEach(el => el.classList.remove('active'));
+            document.getElementById('aiAskTabBtn').style.outline = '2px solid #7c3aed';
+            if (document.getElementById('vacationTabBtn')) document.getElementById('vacationTabBtn').style.outline = '';
+            if (document.getElementById('bestPracticeTabBtn')) document.getElementById('bestPracticeTabBtn').style.outline = '';
+            if (document.getElementById('workShareTabBtn')) document.getElementById('workShareTabBtn').style.outline = '';
+            const header = document.querySelector('#appWrapper .project-header');
+            if (header) header.style.display = 'none';
+            renderAIAskView();
+        }
+
+        function renderAIAskView() {
+            const logHtml = aiChatHistory.map(m => {
+                if (m.role === 'user') return `<div class="ai-msg ai-msg-user">${escapeHtml(m.text)}</div>`;
+                if (m.role === 'error') return `<div class="ai-msg ai-msg-error">⚠️ ${escapeHtml(m.text)}</div>`;
+                return `<div class="ai-msg ai-msg-ai">${escapeHtml(m.text)}</div>`;
+            }).join('');
+            const suggestions = ['최근 진행한 프로모션 알려줘', '이번 달 휴가자 누구야?', '물류 관련 업무 공유 내용 찾아줘', '진행중인 프로젝트 요약해줘'];
+            const suggestionHtml = suggestions.map(s => `<button onclick="askAIQuick('${s.replace(/'/g, "\\'")}')">${escapeHtml(s)}</button>`).join('');
+            document.getElementById('projectContent').innerHTML = `<div class="ai-ask-view">
+                <div class="ai-ask-header"><h2>🤖 AI에게 물어보기</h2></div>
+                <div class="ai-ask-sub">이 팀의 프로젝트・휴가일정・우수사례・업무공유 내용을 바탕으로 답해드려요.</div>
+                ${aiChatHistory.length === 0 ? '<div class="ai-ask-suggestions">' + suggestionHtml + '</div>' : ''}
+                <div class="ai-chat-log" id="aiChatLog">${logHtml}${aiAskLoading ? '<div class="ai-msg ai-msg-loading">답변을 준비하고 있어요...</div>' : ''}</div>
+                <div class="ai-ask-input-row">
+                    <textarea id="aiAskInput" rows="2" placeholder="궁금한 내용을 물어보세요 (예: 지난달에 어떤 프로모션 했었지?)" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();askAI();}"></textarea>
+                    <button id="aiAskSendBtn" onclick="askAI()" ${aiAskLoading ? 'disabled' : ''}>전송</button>
+                </div>
+            </div>`;
+            const log = document.getElementById('aiChatLog');
+            if (log) log.scrollTop = log.scrollHeight;
+        }
+
+        function buildTeamAIContext() {
+            const teamName = (allTeams.find(t => t.id === currentTeamId) || {}).name || currentTeamId;
+            const trunc = (s, n) => (s || '').toString().slice(0, n);
+
+            const projLines = projects.slice(0, 60).map(p => {
+                const tasks = (p.tasks || []).slice(0, 20).map(t => {
+                    const items = (t.progressItems || []).slice(0, 10).map(i => trunc(i.title || i.name, 60)).join(', ');
+                    return `  - 태스크: ${trunc(t.title || t.name, 60)}${items ? ' [진행항목: ' + items + ']' : ''}`;
+                }).join('\n');
+                return `[프로젝트] ${trunc(p.name, 60)} (상태: ${p.completed ? '완료' : '진행중'})\n${tasks}`;
+            }).join('\n');
+
+            const vacLines = vacations.slice(-200).map(v =>
+                `[휴가] ${v.userName} - ${v.type} (${v.startDate} ~ ${v.endDate})`
+            ).join('\n');
+
+            const bpLines = bestPractices.slice(0, 100).map(p =>
+                `[우수사례] "${trunc(p.title, 40)}" by ${p.authorName} (${formatDateTime(p.createdAt)}): ${trunc(p.content, 250)}`
+            ).join('\n');
+
+            const wsLines = workShares.slice(0, 100).map(p =>
+                `[업무공유/${p.category}] "${trunc(p.title, 40)}" by ${p.authorName} (${formatDateTime(p.createdAt)}): ${trunc(p.content, 250)}`
+            ).join('\n');
+
+            return `팀명: ${teamName}\n\n=== 프로젝트 ===\n${projLines || '(없음)'}\n\n=== 휴가 일정 ===\n${vacLines || '(없음)'}\n\n=== 우수사례 공유 ===\n${bpLines || '(없음)'}\n\n=== 업무 공유 ===\n${wsLines || '(없음)'}`;
+        }
+
+        function askAIQuick(text) {
+            const input = document.getElementById('aiAskInput');
+            if (input) input.value = text;
+            askAI();
+        }
+
+        async function askAI() {
+            if (aiAskLoading) return;
+            const input = document.getElementById('aiAskInput');
+            const question = input ? input.value.trim() : '';
+            if (!question) return;
+            if (!AI_PROXY_URL) {
+                aiChatHistory.push({ role: 'error', text: 'AI 프록시 URL이 설정되지 않았습니다.' });
+                renderAIAskView();
+                return;
+            }
+            aiChatHistory.push({ role: 'user', text: question });
+            if (input) input.value = '';
+            aiAskLoading = true;
+            renderAIAskView();
+            try {
+                const context = buildTeamAIContext();
+                const params = new URLSearchParams();
+                params.append('question', question);
+                params.append('context', context);
+                const res = await fetch(AI_PROXY_URL, { method: 'POST', body: params });
+                const data = await res.json();
+                if (data.error) {
+                    aiChatHistory.push({ role: 'error', text: data.error });
+                } else {
+                    aiChatHistory.push({ role: 'ai', text: data.answer || '답변을 받지 못했습니다.' });
+                }
+            } catch (e) {
+                aiChatHistory.push({ role: 'error', text: '요청 중 오류가 발생했습니다: ' + e.message });
+            } finally {
+                aiAskLoading = false;
+                renderAIAskView();
+            }
         }
 
         // ==========================================
