@@ -2636,9 +2636,12 @@
             const trunc = (s, n) => (s || '').toString().slice(0, n);
 
             const projLines = projects.slice(0, 60).map(p => {
-                const tasks = (p.tasks || []).slice(0, 20).map(t => {
-                    const items = (t.progressItems || []).slice(0, 10).map(i => trunc(i.title || i.name, 60)).join(', ');
-                    return `  - 태스크: ${trunc(t.title || t.name, 60)}${items ? ' [진행항목: ' + items + ']' : ''}`;
+                const tasks = (p.tasks || []).slice(0, 30).map(t => {
+                    const items = (t.progressItems || []).slice(0, 15).map(i => {
+                        const period = (i.startDate || i.endDate) ? ` (${i.startDate || '?'} ~ ${i.endDate || '?'})` : '';
+                        return `${trunc(i.content, 80)}${period} [진행률 ${i.progress || 0}%]`;
+                    }).join(' / ');
+                    return `  - [${trunc(t.category1, 20)}/${trunc(t.category2, 20)}] 과제: ${trunc(t.title, 60)} | 담당자: ${t.assignee || '미지정'}${items ? '\n    진행항목: ' + items : ''}`;
                 }).join('\n');
                 return `[프로젝트] ${trunc(p.name, 60)} (상태: ${p.completed ? '완료' : '진행중'})\n${tasks}`;
             }).join('\n');
@@ -2655,8 +2658,9 @@
                 `[업무공유/${p.category}] "${trunc(p.title, 40)}" by ${p.authorName} (${formatDateTime(p.createdAt)}): ${trunc(p.content, 250)}`
             ).join('\n');
 
-            return `팀명: ${teamName}\n\n=== 프로젝트 ===\n${projLines || '(없음)'}\n\n=== 휴가 일정 ===\n${vacLines || '(없음)'}\n\n=== 우수사례 공유 ===\n${bpLines || '(없음)'}\n\n=== 업무 공유 ===\n${wsLines || '(없음)'}`;
+            return `팀명: ${teamName}\n\n=== 프로젝트 (각 과제마다 담당자와 진행항목별 시작일~종료일 포함) ===\n${projLines || '(없음)'}\n\n=== 휴가 일정 ===\n${vacLines || '(없음)'}\n\n=== 우수사례 공유 ===\n${bpLines || '(없음)'}\n\n=== 업무 공유 ===\n${wsLines || '(없음)'}`;
         }
+
 
         function askAIQuick(text) {
             const input = document.getElementById('aiAskInput');
