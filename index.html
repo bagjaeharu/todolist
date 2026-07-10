@@ -101,7 +101,8 @@
             updateConnStatus('데이터 준비 중...', '');
             ensureAdminAccount()
                 .then(() => ensureDefaultTeam())
-                .then(() => { enableAuthButtons(); console.log('✅ Firebase 준비 완료'); checkSession(); })
+                .then(() => ensureHolidaysSeed())
+                .then(() => { loadHolidaysRealtime(); enableAuthButtons(); console.log('✅ Firebase 준비 완료'); checkSession(); })
                 .catch((error) => {
                     let msg = '데이터베이스 접근 실패.';
                     if (error && error.message && error.message.indexOf('permission') !== -1) msg = 'DB 권한 오류.';
@@ -396,6 +397,11 @@
         .board-header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
         .board-list { display: grid; gap: 12px; }
         .board-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px 20px; background: white; cursor: pointer; transition: all 0.2s; }
+        .board-card.select-mode { border-color: #cbd5e1; }
+        .board-card.selected { border-color: #ea580c; background: #fff7ed; box-shadow: 0 0 0 1px #ea580c; }
+        .board-card-header-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 6px; }
+        .board-card-header-row .board-card-title { margin-bottom: 0; }
+        .board-select-checkbox { width: 18px; height: 18px; margin-top: 2px; flex-shrink: 0; cursor: pointer; }
         .board-card:hover { border-color: #ea580c; box-shadow: 0 2px 8px rgba(234,88,12,0.08); }
         .board-card-title { font-weight: 700; font-size: 1.1em; color: #1f2937; margin-bottom: 6px; }
         .board-card-meta { font-size: 0.82em; color: #94a3b8; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -904,6 +910,28 @@
         </div>
     </div>
 
+    <!-- Holiday Manage Modal (전체관리자 전용) -->
+    <div class="modal" id="holidayManageModal">
+        <div class="modal-content" style="max-width:640px;">
+            <div class="modal-header">🇰🇷 공휴일 관리</div>
+            <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 14px;margin-bottom:18px;font-size:0.85em;color:#7f1d1d;line-height:1.6;">
+                음력 기반 공휴일(설날·추석·부처님오신날)은 매년 날짜가 바뀝니다. 새 연도가 시작되면 이곳에서 날짜를 추가해 주세요.
+            </div>
+            <div id="holidayFormMsg" class="auth-msg"></div>
+            <div class="form-row">
+                <div class="form-group"><label for="holidayDateInput">날짜 *</label><input type="date" id="holidayDateInput"></div>
+                <div class="form-group"><label for="holidayNameInput">공휴일명 *</label><input type="text" id="holidayNameInput" placeholder="예: 임시공휴일"></div>
+            </div>
+            <div class="modal-actions" style="margin-top:0;margin-bottom:20px;justify-content:flex-start;">
+                <button type="button" class="btn btn-primary" id="holidaySaveBtn" onclick="saveHolidayEntry()">추가</button>
+                <button type="button" class="btn btn-secondary" id="holidayCancelEditBtn" onclick="resetHolidayForm()" style="display:none;">편집 취소</button>
+            </div>
+            <div style="font-weight:700;color:#1f2937;margin-bottom:10px;font-size:0.9em;">등록된 공휴일 목록</div>
+            <div id="holidayManageList" style="max-height:340px;overflow-y:auto;"></div>
+            <div class="modal-actions"><button type="button" class="btn btn-secondary" onclick="closeModal('holidayManageModal')">닫기</button></div>
+        </div>
+    </div>
+
     <script>
         // ==========================================
         // 전역 변수
@@ -933,11 +961,12 @@
         let wsReplyingTo = null;
 
         // ==========================================
-        // 대한민국 법정 공휴일 (정적 데이터, 매년 갱신 필요)
-        // 음력 기반 공휴일(설날/추석/부처님오신날)은 매년 날짜가 달라지므로
-        // 매년 초 이 목록에 다음 연도 공휴일을 추가해 주세요.
+        // 대한민국 법정 공휴일
+        // 최초 1회 Firebase(shared/holidays)에 시드로 저장되고, 이후에는
+        // Firebase 데이터가 기준이 됩니다. 전체관리자는 앱 내 "공휴일 관리"
+        // 화면에서 추가/수정/삭제할 수 있습니다.
         // ==========================================
-        const KR_HOLIDAYS = {
+        const KR_HOLIDAYS_SEED = {
             '2025-01-01': '신정',
             '2025-01-28': '설날 연휴',
             '2025-01-29': '설날',
@@ -1006,10 +1035,113 @@
         // 2027년에는 제헌절(7/17, 토)이 토요일과 겹쳐 1960년 이후 67년 만에
         // 대체공휴일(7/19, 월)이 적용됩니다. 크리스마스도 같은 해 처음으로
         // 대체공휴일(12/27, 월)이 적용됩니다.
-        // 음력 기반 공휴일(설날/추석/부처님오신날)은 매년 날짜가 달라지므로
-        // 2028년 이후 목록은 매년 초 인사혁신처 고시를 참고해 추가해 주세요.
+        // 음력 기반 공휴일(설날/추석/부처님오신날)은 매년 날짜가 달라지므로,
+        // 2028년 이후 공휴일은 전체관리자가 앱 내 "공휴일 관리" 화면에서
+        // 추가해 주세요. (인사혁신처 고시 기준)
 
+        // Firebase(shared/holidays)에서 동기화되는 실제 공휴일 데이터
+        let KR_HOLIDAYS = {};
         function getHoliday(dateStr) { return KR_HOLIDAYS[dateStr] || null; }
+
+        async function ensureHolidaysSeed() {
+            const ref = firebase.database().ref('shared/holidays');
+            const snap = await ref.once('value');
+            if (!snap.exists() || Object.keys(snap.val() || {}).length === 0) {
+                await ref.set(KR_HOLIDAYS_SEED);
+            }
+        }
+
+        let holidaysListenerRef = null;
+        function loadHolidaysRealtime() {
+            if (holidaysListenerRef) return; // 이미 리스닝 중
+            holidaysListenerRef = firebase.database().ref('shared/holidays');
+            holidaysListenerRef.on('value', snap => {
+                KR_HOLIDAYS = snap.exists() ? snap.val() : {};
+                const vv = document.querySelector('.vacation-view');
+                if (vv) renderVacationView();
+                const hm = document.getElementById('holidayManageModal');
+                if (hm && hm.classList.contains('active')) renderHolidayManageList();
+            });
+        }
+
+        // ==========================================
+        // 공휴일 관리 (전체관리자 전용)
+        // ==========================================
+        let editingHolidayDate = null;
+
+        function openHolidayManageModal() {
+            if (!isSuperAdmin()) return;
+            resetHolidayForm();
+            renderHolidayManageList();
+            document.getElementById('holidayManageModal').classList.add('active');
+        }
+
+        function resetHolidayForm() {
+            editingHolidayDate = null;
+            document.getElementById('holidayDateInput').value = '';
+            document.getElementById('holidayNameInput').value = '';
+            document.getElementById('holidaySaveBtn').textContent = '추가';
+            document.getElementById('holidayCancelEditBtn').style.display = 'none';
+            document.getElementById('holidayFormMsg').className = 'auth-msg';
+        }
+
+        function editHolidayEntry(dateStr) {
+            editingHolidayDate = dateStr;
+            document.getElementById('holidayDateInput').value = dateStr;
+            document.getElementById('holidayNameInput').value = KR_HOLIDAYS[dateStr] || '';
+            document.getElementById('holidaySaveBtn').textContent = '수정 저장';
+            document.getElementById('holidayCancelEditBtn').style.display = 'inline-block';
+            document.getElementById('holidayFormMsg').className = 'auth-msg';
+        }
+
+        async function saveHolidayEntry() {
+            if (!isSuperAdmin()) return;
+            const dateStr = document.getElementById('holidayDateInput').value;
+            const name = document.getElementById('holidayNameInput').value.trim();
+            const msg = document.getElementById('holidayFormMsg');
+            if (!dateStr || !name) { msg.className = 'auth-msg error'; msg.textContent = '날짜와 공휴일명을 모두 입력해 주세요.'; return; }
+            try {
+                if (editingHolidayDate && editingHolidayDate !== dateStr) {
+                    // 날짜가 변경된 경우: 기존 항목 삭제 후 새로 저장
+                    await firebase.database().ref('shared/holidays/' + editingHolidayDate).remove();
+                }
+                await firebase.database().ref('shared/holidays/' + dateStr).set(name);
+                msg.className = 'auth-msg success'; msg.textContent = (editingHolidayDate ? '수정' : '추가') + '되었습니다.';
+                resetHolidayForm();
+            } catch (e) {
+                msg.className = 'auth-msg error'; msg.textContent = '저장 실패: ' + e.message;
+            }
+        }
+
+        async function deleteHolidayEntry(dateStr) {
+            if (!isSuperAdmin()) return;
+            const name = KR_HOLIDAYS[dateStr] || '';
+            if (!confirm(dateStr + ' "' + name + '"을(를) 삭제하시겠습니까?')) return;
+            await firebase.database().ref('shared/holidays/' + dateStr).remove();
+            if (editingHolidayDate === dateStr) resetHolidayForm();
+        }
+
+        function renderHolidayManageList() {
+            const el = document.getElementById('holidayManageList');
+            if (!el) return;
+            const dates = Object.keys(KR_HOLIDAYS).sort();
+            if (!dates.length) { el.innerHTML = '<div class="empty-admin">등록된 공휴일이 없습니다.</div>'; return; }
+            let lastYear = null;
+            let html = '';
+            dates.forEach(d => {
+                const year = d.slice(0, 4);
+                if (year !== lastYear) { html += '<div style="font-weight:700;color:#64748b;font-size:0.82em;margin:14px 0 6px;">' + year + '년</div>'; lastYear = year; }
+                const dObj = new Date(d);
+                const label = (dObj.getMonth() + 1) + '월 ' + dObj.getDate() + '일 (' + ['일','월','화','수','목','금','토'][dObj.getDay()] + ')';
+                html += `<div class="team-manage-item">
+                    <span style="min-width:110px;font-weight:700;color:#dc2626;font-size:0.88em;">${label}</span>
+                    <span style="flex:1;color:#1f2937;">${escapeHtml(KR_HOLIDAYS[d])}</span>
+                    <button class="btn btn-sm btn-secondary" onclick="editHolidayEntry('${d}')">편집</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteHolidayEntry('${d}')">삭제</button>
+                </div>`;
+            });
+            el.innerHTML = html;
+        }
 
         // ⚠️ 배포한 Google Apps Script 웹앱 URL을 아래에 넣으세요.
         const AI_PROXY_URL = 'https://script.google.com/macros/s/AKfycbw9_fzM-fVak6aliHgxSWUV34tk7N8hPESQ1SG4friyIjNtl20BDjIkyTiqQDrRg3s6/exec';
@@ -1984,51 +2116,124 @@
             downloadBlob(blob, filename);
         }
 
+        function bestPracticeToText(p, idx) {
+            const comments = Object.values(p.comments || {}).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+            const likeCount = Object.keys(p.likes || {}).length;
+            let text = `[${idx + 1}] ${p.title}\n`;
+            text += `작성자: ${p.authorName} | 작성일: ${formatDateTime(p.createdAt)}${p.editedAt ? ' (수정됨)' : ''} | 좋아요 ${likeCount} | 댓글 ${comments.length}\n`;
+            text += '-'.repeat(40) + '\n';
+            text += (p.content || '') + '\n';
+            if (comments.length) {
+                text += '\n[댓글]\n';
+                comments.forEach(c => { text += `- ${c.authorName} (${formatDateTime(c.createdAt)}): ${c.content}\n`; });
+            }
+            text += '\n' + '='.repeat(50) + '\n\n';
+            return text;
+        }
+
+        function workShareToText(p, idx) {
+            const allComments = Object.values(p.comments || {}).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+            const likeCount = Object.keys(p.likes || {}).length;
+            let text = `[${idx + 1}] (${p.category}) ${p.title}\n`;
+            text += `작성자: ${p.authorName} | 작성일: ${formatDateTime(p.createdAt)}${p.editedAt ? ' (수정됨)' : ''} | 좋아요 ${likeCount} | 댓글 ${allComments.length}\n`;
+            text += '-'.repeat(40) + '\n';
+            text += (p.content || '') + '\n';
+            if (allComments.length) {
+                text += '\n[댓글]\n';
+                allComments.forEach(c => {
+                    const prefix = c.parentId ? '  ㄴ 답글: ' : '- ';
+                    text += `${prefix}${c.authorName} (${formatDateTime(c.createdAt)}): ${c.content}\n`;
+                });
+            }
+            text += '\n' + '='.repeat(50) + '\n\n';
+            return text;
+        }
+
+        // ---- 우수사례 선택 추출 ----
+        let bpSelectMode = false;
+        let bpSelectedIds = new Set();
+
+        function toggleBpSelectMode() {
+            bpSelectMode = !bpSelectMode;
+            bpSelectedIds.clear();
+            renderBestPracticeList();
+        }
+        function toggleBpSelect(id) {
+            if (bpSelectedIds.has(id)) bpSelectedIds.delete(id); else bpSelectedIds.add(id);
+            renderBestPracticeList();
+        }
+        function bpSelectAll() {
+            [...bestPractices].forEach(p => bpSelectedIds.add(p.id));
+            renderBestPracticeList();
+        }
+        function bpSelectNone() {
+            bpSelectedIds.clear();
+            renderBestPracticeList();
+        }
+        function handleBpCardClick(id) {
+            if (bpSelectMode) toggleBpSelect(id);
+            else openBestPracticeDetail(id);
+        }
+
         function exportBestPracticesToText() {
-            if (!bestPractices.length) { alert('추출할 우수사례가 없습니다.'); return; }
-            const teamName = (allTeams.find(t => t.id === currentTeamId) || {}).name || '';
             const sorted = [...bestPractices].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-            let text = `[${teamName}] 우수사례 공유 전체 목록\n추출일시: ${formatDateTime(Date.now())}\n총 ${sorted.length}건\n`;
+            let target = sorted;
+            let scopeNote = `총 ${sorted.length}건`;
+            if (bpSelectMode) {
+                target = sorted.filter(p => bpSelectedIds.has(p.id));
+                if (!target.length) { alert('추출할 우수사례를 선택해 주세요.'); return; }
+                scopeNote = `선택 ${target.length}건 / 전체 ${sorted.length}건`;
+            } else if (!sorted.length) {
+                alert('추출할 우수사례가 없습니다.'); return;
+            }
+            const teamName = (allTeams.find(t => t.id === currentTeamId) || {}).name || '';
+            let text = `[${teamName}] 우수사례 공유 ${bpSelectMode ? '선택' : '전체'} 목록\n추출일시: ${formatDateTime(Date.now())}\n${scopeNote}\n`;
             text += '='.repeat(50) + '\n\n';
-            sorted.forEach((p, idx) => {
-                const comments = Object.values(p.comments || {}).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-                const likeCount = Object.keys(p.likes || {}).length;
-                text += `[${idx + 1}] ${p.title}\n`;
-                text += `작성자: ${p.authorName} | 작성일: ${formatDateTime(p.createdAt)}${p.editedAt ? ' (수정됨)' : ''} | 좋아요 ${likeCount} | 댓글 ${comments.length}\n`;
-                text += '-'.repeat(40) + '\n';
-                text += (p.content || '') + '\n';
-                if (comments.length) {
-                    text += '\n[댓글]\n';
-                    comments.forEach(c => { text += `- ${c.authorName} (${formatDateTime(c.createdAt)}): ${c.content}\n`; });
-                }
-                text += '\n' + '='.repeat(50) + '\n\n';
-            });
+            target.forEach((p, idx) => { text += bestPracticeToText(p, idx); });
             downloadText(text, `우수사례공유_${teamName}_${new Date().toISOString().slice(0,10)}.txt`);
         }
 
+        // ---- 업무공유 선택 추출 ----
+        let wsSelectMode = false;
+        let wsSelectedIds = new Set();
+
+        function toggleWsSelectMode() {
+            wsSelectMode = !wsSelectMode;
+            wsSelectedIds.clear();
+            renderWorkShareList();
+        }
+        function toggleWsSelect(id) {
+            if (wsSelectedIds.has(id)) wsSelectedIds.delete(id); else wsSelectedIds.add(id);
+            renderWorkShareList();
+        }
+        function wsSelectAll() {
+            getWsFilteredList().forEach(p => wsSelectedIds.add(p.id));
+            renderWorkShareList();
+        }
+        function wsSelectNone() {
+            wsSelectedIds.clear();
+            renderWorkShareList();
+        }
+        function handleWsCardClick(id) {
+            if (wsSelectMode) toggleWsSelect(id);
+            else openWorkShareDetail(id);
+        }
+
         function exportWorkSharesToText() {
-            if (!workShares.length) { alert('추출할 업무 공유 글이 없습니다.'); return; }
-            const teamName = (allTeams.find(t => t.id === currentTeamId) || {}).name || '';
             const list = getWsFilteredList();
-            const target = list.length ? list : [...workShares].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-            let text = `[${teamName}] 업무 공유 전체 목록\n추출일시: ${formatDateTime(Date.now())}\n총 ${target.length}건${(wsCategoryFilter || wsSearchKeyword) ? ' (현재 필터 적용됨)' : ''}\n`;
+            let target = list;
+            let scopeNote = `총 ${list.length}건${(wsCategoryFilter || wsSearchKeyword) ? ' (현재 필터 적용됨)' : ''}`;
+            if (wsSelectMode) {
+                target = list.filter(p => wsSelectedIds.has(p.id));
+                if (!target.length) { alert('추출할 업무 공유 글을 선택해 주세요.'); return; }
+                scopeNote = `선택 ${target.length}건 / 목록 ${list.length}건`;
+            } else if (!list.length) {
+                alert('추출할 업무 공유 글이 없습니다.'); return;
+            }
+            const teamName = (allTeams.find(t => t.id === currentTeamId) || {}).name || '';
+            let text = `[${teamName}] 업무 공유 ${wsSelectMode ? '선택' : '전체'} 목록\n추출일시: ${formatDateTime(Date.now())}\n${scopeNote}\n`;
             text += '='.repeat(50) + '\n\n';
-            target.forEach((p, idx) => {
-                const allComments = Object.values(p.comments || {}).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-                const likeCount = Object.keys(p.likes || {}).length;
-                text += `[${idx + 1}] (${p.category}) ${p.title}\n`;
-                text += `작성자: ${p.authorName} | 작성일: ${formatDateTime(p.createdAt)}${p.editedAt ? ' (수정됨)' : ''} | 좋아요 ${likeCount} | 댓글 ${allComments.length}\n`;
-                text += '-'.repeat(40) + '\n';
-                text += (p.content || '') + '\n';
-                if (allComments.length) {
-                    text += '\n[댓글]\n';
-                    allComments.forEach(c => {
-                        const prefix = c.parentId ? '  ㄴ 답글: ' : '- ';
-                        text += `${prefix}${c.authorName} (${formatDateTime(c.createdAt)}): ${c.content}\n`;
-                    });
-                }
-                text += '\n' + '='.repeat(50) + '\n\n';
-            });
+            target.forEach((p, idx) => { text += workShareToText(p, idx); });
             downloadText(text, `업무공유_${teamName}_${new Date().toISOString().slice(0,10)}.txt`);
         }
 
@@ -2177,7 +2382,12 @@
             const monthHolidays = getMonthHolidays(vacCalYear, vacCalMonth);
             const mn = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
             document.getElementById('projectContent').innerHTML = `<div class="vacation-view">
-                <div class="vacation-header"><h2>🏖️ 휴가 일정</h2><button class="btn btn-primary" onclick="openVacationModal()" style="background:#7c3aed;">+ 휴가 추가</button></div>
+                <div class="vacation-header"><h2>🏖️ 휴가 일정</h2>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        ${isSuperAdmin() ? '<button class="btn btn-secondary" onclick="openHolidayManageModal()">🇰🇷 공휴일 관리</button>' : ''}
+                        <button class="btn btn-primary" onclick="openVacationModal()" style="background:#7c3aed;">+ 휴가 추가</button>
+                    </div>
+                </div>
                 <div class="vacation-nav"><button onclick="changeVacMonth(-1)">‹</button><span class="month-label">${vacCalYear}년 ${mn[vacCalMonth]}</span><button onclick="changeVacMonth(1)">›</button></div>
                 <div style="margin-top:16px;">${renderCalendarGrid(vacCalYear, vacCalMonth)}</div>
                 <div class="vacation-list-section"><div class="vacation-list-title">📋 ${mn[vacCalMonth]} 휴가 목록</div>${renderVacList(monthVacs)}</div>
@@ -2399,6 +2609,8 @@
             const header = document.querySelector('#appWrapper .project-header');
             if (header) header.style.display = 'none';
             currentBestPracticeId = null;
+            bpSelectMode = false;
+            bpSelectedIds.clear();
             renderBestPracticeList();
         }
 
@@ -2413,20 +2625,31 @@
                     const likeCount = Object.keys(p.likes || {}).length;
                     const content = p.content || '';
                     const preview = content.slice(0, 80);
-                    return `<div class="board-card" onclick="openBestPracticeDetail('${p.id}')">
-                        <div class="board-card-title">${escapeHtml(p.title)}</div>
+                    const checked = bpSelectedIds.has(p.id);
+                    const checkboxHtml = bpSelectMode
+                        ? `<input type="checkbox" class="board-select-checkbox" ${checked ? 'checked' : ''} onclick="event.stopPropagation();toggleBpSelect('${p.id}')">`
+                        : '';
+                    return `<div class="board-card ${bpSelectMode ? 'select-mode' : ''} ${checked ? 'selected' : ''}" onclick="handleBpCardClick('${p.id}')">
+                        <div class="board-card-header-row">
+                            ${checkboxHtml}
+                            <div class="board-card-title">${escapeHtml(p.title)}</div>
+                        </div>
                         <div class="board-card-meta"><span>${escapeHtml(p.authorName)}</span><span>·</span><span>${formatDateTime(p.createdAt)}</span></div>
                         <div class="board-card-preview">${escapeHtml(preview)}${content.length > 80 ? '...' : ''}</div>
                         <div class="board-card-stats"><span>👍 ${likeCount}</span><span>💬 ${commentCount}</span></div>
                     </div>`;
                 }).join('');
             }
+            const headerActions = bpSelectMode
+                ? `<button class="btn btn-secondary" onclick="bpSelectAll()">전체선택</button>
+                   <button class="btn btn-secondary" onclick="bpSelectNone()">선택해제</button>
+                   <button class="btn btn-primary" style="background:#ea580c;" onclick="exportBestPracticesToText()">📝 추출 (${bpSelectedIds.size})</button>
+                   <button class="btn btn-secondary" onclick="toggleBpSelectMode()">취소</button>`
+                : `<button class="btn btn-secondary" onclick="toggleBpSelectMode()">☑️ 선택 추출</button>
+                   <button class="btn btn-primary" onclick="openBestPracticeWriteModal()" style="background:#ea580c;">+ 사례 작성</button>`;
             document.getElementById('projectContent').innerHTML = `<div class="board-view">
                 <div class="board-header"><h2>🏆 우수사례 공유</h2>
-                    <div class="board-header-actions">
-                        <button class="btn btn-secondary" onclick="exportBestPracticesToText()">📝 메모장으로 추출</button>
-                        <button class="btn btn-primary" onclick="openBestPracticeWriteModal()" style="background:#ea580c;">+ 사례 작성</button>
-                    </div>
+                    <div class="board-header-actions">${headerActions}</div>
                 </div>
                 <div class="board-list">${listHtml}</div>
             </div>`;
@@ -2593,6 +2816,8 @@
             const header = document.querySelector('#appWrapper .project-header');
             if (header) header.style.display = 'none';
             currentWorkShareId = null;
+            wsSelectMode = false;
+            wsSelectedIds.clear();
             renderWorkShareList();
         }
 
@@ -2636,8 +2861,15 @@
                     const likeCount = Object.keys(p.likes || {}).length;
                     const content = p.content || '';
                     const preview = content.slice(0, 80);
-                    return `<div class="board-card" onclick="openWorkShareDetail('${p.id}')">
-                        <div class="board-card-title"><span class="board-category-badge">${escapeHtml(p.category)}</span>${escapeHtml(p.title)}</div>
+                    const checked = wsSelectedIds.has(p.id);
+                    const checkboxHtml = wsSelectMode
+                        ? `<input type="checkbox" class="board-select-checkbox" ${checked ? 'checked' : ''} onclick="event.stopPropagation();toggleWsSelect('${p.id}')">`
+                        : '';
+                    return `<div class="board-card ${wsSelectMode ? 'select-mode' : ''} ${checked ? 'selected' : ''}" onclick="handleWsCardClick('${p.id}')">
+                        <div class="board-card-header-row">
+                            ${checkboxHtml}
+                            <div class="board-card-title"><span class="board-category-badge">${escapeHtml(p.category)}</span>${escapeHtml(p.title)}</div>
+                        </div>
                         <div class="board-card-meta"><span>${escapeHtml(p.authorName)}</span><span>·</span><span>${formatDateTime(p.createdAt)}</span></div>
                         <div class="board-card-preview">${escapeHtml(preview)}${content.length > 80 ? '...' : ''}</div>
                         <div class="board-card-stats"><span>👍 ${likeCount}</span><span>💬 ${commentCount}</span></div>
@@ -2645,12 +2877,16 @@
                 }).join('');
             }
             const categoryOptionsHtml = categories.map(c => `<option value="${escapeHtml(c)}" ${wsCategoryFilter === c ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('');
+            const wsHeaderActions = wsSelectMode
+                ? `<button class="btn btn-secondary" onclick="wsSelectAll()">전체선택</button>
+                   <button class="btn btn-secondary" onclick="wsSelectNone()">선택해제</button>
+                   <button class="btn btn-primary" style="background:#0891b2;" onclick="exportWorkSharesToText()">📝 추출 (${wsSelectedIds.size})</button>
+                   <button class="btn btn-secondary" onclick="toggleWsSelectMode()">취소</button>`
+                : `<button class="btn btn-secondary" onclick="toggleWsSelectMode()">☑️ 선택 추출</button>
+                   <button class="btn btn-primary" onclick="openWorkShareWriteModal()" style="background:#0891b2;">+ 글 작성</button>`;
             document.getElementById('projectContent').innerHTML = `<div class="board-view">
                 <div class="board-header"><h2>📢 업무 공유</h2>
-                    <div class="board-header-actions">
-                        <button class="btn btn-secondary" onclick="exportWorkSharesToText()">📝 메모장으로 추출</button>
-                        <button class="btn btn-primary" onclick="openWorkShareWriteModal()" style="background:#0891b2;">+ 글 작성</button>
-                    </div>
+                    <div class="board-header-actions">${wsHeaderActions}</div>
                 </div>
                 <div class="board-filter-bar">
                     <select id="wsCategoryFilterSelect" onchange="applyWsCategoryFilter(this.value)">
