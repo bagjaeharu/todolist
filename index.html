@@ -293,6 +293,7 @@
         /* ========== 진행 항목 ========== */
         .progress-item { background: white; padding: 0; border-radius: 6px; margin-bottom: 15px; border: 1px solid #e2e8f0; border-left: 3px solid #3b82f6; overflow: hidden; }
         .progress-item-title-row { display: flex; align-items: flex-start; gap: 0; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+        .progress-item-order-btns { display: flex; flex-direction: column; gap: 1px; margin: 10px 0 0 8px; }
         .progress-item-label { white-space: nowrap; font-weight: 700; font-size: 0.88em; color: #3b82f6; padding: 12px 0 12px 14px; line-height: 1.6; user-select: none; }
         .progress-item-content-input { flex: 1; border: none; outline: none; background: transparent; font-family: 'Nanum Gothic', sans-serif; font-size: 0.95em; font-weight: 700; color: #1f2937; padding: 12px 10px; line-height: 1.6; resize: none; min-height: 42px; overflow: hidden; }
         .progress-item-content-input::placeholder { color: #94a3b8; font-weight: 400; }
@@ -1866,7 +1867,9 @@
                         ${progressItems.map((item, idx) => {
                             const ip = item.progress || 0;
                             const ic = progressColor(ip);
-                            return '<div class="progress-item"><div class="progress-item-title-row"><span class="progress-item-label">항목 #' + (idx+1) + ' :</span><textarea class="progress-item-content-input" rows="1" onchange="updateProgressContent(' + task.id + ',' + item.id + ',this.value)" oninput="this.style.height=\'auto\';this.style.height=this.scrollHeight+\'px\';" placeholder="진행 내용을 입력하세요">' + escapeHtml(item.content) + '</textarea><button type="button" class="progress-item-delete" onclick="deleteProgressItem(' + task.id + ',' + item.id + ')" title="삭제">✕</button></div><div class="progress-item-body"><div class="progress-item-progress"><label>진행률</label><div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:' + ip + '%;background:' + ic + ';"></div></div><select onchange="updateProgressItemProgress(' + task.id + ',' + item.id + ',parseInt(this.value))">' + [0,10,20,30,40,50,60,70,80,90,100].map(v => '<option value="' + v + '"' + (ip===v?' selected':'') + '>' + v + '%</option>').join('') + '</select></div><div class="progress-item-dates"><div class="progress-item-date"><label>시작</label><input type="date" value="' + (item.startDate||'') + '" onchange="updateProgressDate(' + task.id + ',' + item.id + ',\'startDate\',this.value)"></div><span class="date-sep">~</span><div class="progress-item-date"><label>종료</label><input type="date" value="' + (item.endDate||'') + '" onchange="updateProgressDate(' + task.id + ',' + item.id + ',\'endDate\',this.value)"></div></div></div><div class="progress-item-notes"><label>📌 비고</label><input type="text" value="' + escapeHtml(item.notes||'') + '" onchange="updateProgressItemNotes(' + task.id + ',' + item.id + ',this.value)" placeholder="메모를 입력하세요"></div></div>';
+                            const isPFirst = idx === 0;
+                            const isPLast = idx === progressItems.length - 1;
+                            return '<div class="progress-item"><div class="progress-item-title-row"><div class="progress-item-order-btns"><button type="button" class="task-order-btn" onclick="moveProgressItem(' + task.id + ',' + item.id + ',-1)" ' + (isPFirst ? 'disabled' : '') + ' title="위로">▲</button><button type="button" class="task-order-btn" onclick="moveProgressItem(' + task.id + ',' + item.id + ',1)" ' + (isPLast ? 'disabled' : '') + ' title="아래로">▼</button></div><span class="progress-item-label">항목 #' + (idx+1) + ' :</span><textarea class="progress-item-content-input" rows="1" onchange="updateProgressContent(' + task.id + ',' + item.id + ',this.value)" oninput="this.style.height=\'auto\';this.style.height=this.scrollHeight+\'px\';" placeholder="진행 내용을 입력하세요">' + escapeHtml(item.content) + '</textarea><button type="button" class="progress-item-delete" onclick="deleteProgressItem(' + task.id + ',' + item.id + ')" title="삭제">✕</button></div><div class="progress-item-body"><div class="progress-item-progress"><label>진행률</label><div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:' + ip + '%;background:' + ic + ';"></div></div><select onchange="updateProgressItemProgress(' + task.id + ',' + item.id + ',parseInt(this.value))">' + [0,10,20,30,40,50,60,70,80,90,100].map(v => '<option value="' + v + '"' + (ip===v?' selected':'') + '>' + v + '%</option>').join('') + '</select></div><div class="progress-item-dates"><div class="progress-item-date"><label>시작</label><input type="date" value="' + (item.startDate||'') + '" onchange="updateProgressDate(' + task.id + ',' + item.id + ',\'startDate\',this.value)"></div><span class="date-sep">~</span><div class="progress-item-date"><label>종료</label><input type="date" value="' + (item.endDate||'') + '" onchange="updateProgressDate(' + task.id + ',' + item.id + ',\'endDate\',this.value)"></div></div></div><div class="progress-item-notes"><label>📌 비고</label><input type="text" value="' + escapeHtml(item.notes||'') + '" onchange="updateProgressItemNotes(' + task.id + ',' + item.id + ',this.value)" placeholder="메모를 입력하세요"></div></div>';
                         }).join('')}
                         <button type="button" class="add-progress-btn" onclick="addProgressItem(${task.id})">➕ 진행 내용 추가</button>
                         ${task.notes ? '<div style="margin-top:20px;"><h4 style="font-weight:700;color:#1f2937;">📌 비고</h4><div style="padding:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;">' + escapeHtml(task.notes) + '</div></div>' : ''}
@@ -1894,6 +1897,23 @@
             const newIdx = idx + direction;
             if (newIdx < 0 || newIdx >= project.tasks.length) return;
             [project.tasks[idx], project.tasks[newIdx]] = [project.tasks[newIdx], project.tasks[idx]];
+            saveToFirebase();
+            applyFilters();
+        }
+
+        // ==========================================
+        // 진행 내용(진행항목) 순서 변경
+        // ==========================================
+        function moveProgressItem(taskId, itemId, direction) {
+            const project = projects.find(p => p.id === currentProjectId);
+            if (!project) return;
+            const task = (project.tasks || []).find(t => t.id === taskId);
+            if (!task || !task.progressItems) return;
+            const idx = task.progressItems.findIndex(i => i.id === itemId);
+            if (idx < 0) return;
+            const newIdx = idx + direction;
+            if (newIdx < 0 || newIdx >= task.progressItems.length) return;
+            [task.progressItems[idx], task.progressItems[newIdx]] = [task.progressItems[newIdx], task.progressItems[idx]];
             saveToFirebase();
             applyFilters();
         }
